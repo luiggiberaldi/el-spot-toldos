@@ -1,0 +1,452 @@
+# Bitácora interna del sistema — EL SPOT
+
+> Este documento es interno y no se muestra en la interfaz de la aplicación. La auditoría también se conserva en la store web, Room en Android y los respaldos.
+>
+> **Regla del proyecto:** cada cambio, modificación o reparación del sistema debe
+> quedar registrada aquí. Entradas ordenadas de la más reciente a la más antigua.
+
+**Formato de cada entrada:**
+
+| Campo | Descripción |
+| --- | --- |
+| **Fecha** | Día del cambio (AAAA-MM-DD) |
+| **Versión** | Versión del sistema tras el cambio |
+| **Tipo** | `Nuevo` · `Cambio` · `Corrección` |
+| **Descripción** | Qué se hizo y por qué |
+
+---
+
+## v1.4.17 — 2026-08-26 — `Cambio`
+
+### Logo exclusivo y colores claros en PDF
+
+- Se añadió el nuevo recurso exclusivo para PDF `logo-pdf.png` / `logo_pdf.png`.
+- La interfaz y el icono de instalación permanecen sin cambios.
+- Los PDF web y Android ahora usan fondo blanco, tarjetas claras, texto oscuro y acentos azules.
+- Se mantuvieron los datos del cliente, montos, pendiente, estado de pago, GPS y moneda dual.
+
+---
+
+## v1.4.16 — 2026-08-26 — `Cambio`
+
+### Logo exclusivo y plantilla clara para PDF
+
+- Se agregó `public/logo-pdf.png` y `android-app/app/src/main/res/drawable-nodpi/logo_pdf.png` usando el recurso suministrado.
+- El logo de la interfaz y el icono de instalación permanecen intactos.
+- Los PDF web y Android ahora usan fondo claro, tarjetas blancas, texto oscuro y acentos de marca.
+- Se conservó el estado de pago, pendiente, GPS, moneda dual y datos del cliente.
+
+---
+
+## v1.4.15 — 2026-08-26 — `Nuevo`
+
+### Autoupdate Android por GitHub
+
+- Se activó el cliente de actualización contra `update.json` del repositorio `luiggiberaldi/el-spot-toldos`.
+- Se añadió comprobación periódica cada 12 horas y búsqueda manual desde Configuración.
+- Las descargas requieren HTTPS y validan SHA-256 cuando el manifiesto lo publica.
+- La APK queda en almacenamiento privado y se instala mediante `FileProvider` y el instalador oficial.
+- Si Android solicita autorización para instalar desde esta fuente, la descarga queda pendiente y el flujo se retoma al regresar.
+- Las actualizaciones conservan Room, DataStore y los datos locales si mantienen firma, `applicationId`, `versionCode` creciente y migraciones.
+- Se añadió `update.json` inicial con la versión instalada para evitar descargas hasta publicar una release nueva.
+
+---
+
+## v1.4.14 — 2026-08-26 — `Cambio`
+
+### Navegación simplificada, documentación y canal de actualización
+
+- Se ocultó Bitácora de la navegación y de las pantallas visibles de la PWA y la APK.
+- Se conservaron los registros internos, la persistencia Room/Zustand y su exportación en respaldos.
+- Se actualizó la documentación principal para reflejar los seis módulos visibles y el flujo actual de clientes, toldos, alquileres, recibos, GPS, tasa Bs, logo y eliminación controlada de recibos.
+- Se corrigieron referencias históricas a correo electrónico y logo editable.
+- Se documentó `https://github.com/luiggiberaldi/el-spot-toldos` como repositorio oficial para futuras releases y autoupdate de la APK.
+- Se aclaró que el autoupdate Android requería implementar el verificador, publicar una APK release firmada y configurar el manifiesto de versiones.
+
+---
+
+## v1.4.13 — 2026-08-26 — `Nuevo`
+
+### Eliminación controlada de recibos
+
+- Se añadió una acción de papelera en cada recibo, con etiqueta accesible que incluye el folio.
+- Antes de borrar se muestra una confirmación visual con el resumen de la acción y botones claros para cancelar o continuar.
+- La eliminación quita únicamente el documento de recibo y registra el cambio en la bitácora.
+- Se informa explícitamente que borrar el recibo no revierte automáticamente el abono registrado en el alquiler.
+- Se verificó la aparición del botón y el flujo de cancelación en el Preview; el recibo permanece intacto al cancelar.
+- Typecheck y 51 pruebas deterministas correctos.
+
+---
+
+## v1.4.12 — 2026-08-26 — `Mejora`
+
+### Campos numéricos sin controles nativos innecesarios
+
+- Se ocultaron las flechas de incremento/decremento del navegador en los campos numéricos.
+- La tasa conserva validación numérica, teclado decimal en dispositivos móviles, edición manual y guardado con Enter.
+- La presentación queda consistente entre navegadores y evita controles cuadrados que distraen del formulario.
+- Se verificó el campo de tasa en el Preview con `type=number` y apariencia de texto, sin spinners visibles.
+- Typecheck y 51 pruebas deterministas correctos.
+- No se compiló la APK.
+
+---
+
+## v1.4.11 — 2026-08-26 — `Cambio`
+
+### Acceso rápido para actualizar la tasa desde el Panel
+
+- Se añadió una sección de acceso rápido en el inicio para editar la tasa manual de Bs por cada `$ 1`.
+- El control reutiliza `actualizarConfig`, por lo que la tasa se conserva en la configuración persistida y se refleja inmediatamente en panel, alquileres y equivalentes.
+- Se incorporaron validación de valores, guardado con Enter, confirmación inline y mensaje de error accesible.
+- Se corrigió la presentación de la conversión actual para evitar repetir el prefijo `Bs`.
+- El campo se sincroniza cuando la tasa cambia desde Configuración.
+- Preview verificado con guardado de `36,50` y persistencia en `localStorage`.
+- Typecheck y 51 pruebas deterministas correctos.
+- No se compiló la APK.
+
+---
+
+## v1.4.10 — 2026-08-26 — `Cambio`
+
+### Ajuste de tamaño y centrado del logo
+
+- Se aumentó el tamaño del logo oficial en la barra lateral de la PWA.
+- Se centró horizontal y verticalmente dentro de un bloque de marca más amplio.
+- Se mantuvo el logo sin deformación mediante `object-contain`.
+- La versión móvil conserva un tamaño compacto y centrado.
+- No se modificó el icono de instalación de Android.
+- Typecheck verificado y resultado visual confirmado en el Preview.
+
+---
+
+## v1.4.9 — 2026-08-26 — `Cambio`
+
+### Nuevo logo oficial de EL SPOT TOLDOS
+
+- Se reemplazó el logo visual del sistema por el archivo suministrado `tasas al dia (18).png`.
+- La PWA, el PDF web, la interfaz Android y el PDF nativo utilizan ahora el nuevo recurso de marca.
+- Se mantuvo intacto `elspot_logo.png` como icono de instalación y splash del teléfono.
+- Se conservaron los headers oscuros y el logo centrado en los recibos PDF.
+- Se verificó el nuevo logo en la interfaz y la generación del recibo desde el Preview.
+- No se compiló la APK.
+
+---
+
+## v1.4.8 — 2026-08-26 — `Corrección`
+
+### Corrección de layout y paleta oscura en recibos PDF
+
+- Se corrigió el desbordamiento de direcciones y campos largos en las tarjetas del PDF web mediante alturas calculadas según el contenido real.
+- Se evitó que la información del cliente o del servicio invada el título y la tabla de conceptos.
+- Se aplicó una paleta oscura completa al PDF web y nativo: fondo profundo, superficies slate, texto claro, bordes azul acero y cian de marca.
+- Se conservaron colores diferenciados para estados `PAGADO`, `POR PAGAR`, monto pendiente y equivalentes en Bs.
+- La plantilla Android quedó alineada con la web y mantiene margen para datos extensos, tabla y resumen financiero, sin espacios de firma.
+- Typecheck y 51 pruebas deterministas verificadas; la APK no fue compilada.
+
+---
+
+## v1.4.7 — 2026-08-26 — `Cambio`
+
+### Mejora UX del flujo de emisión de recibos
+
+- Se reemplazaron los desplegables de monto y estado por opciones visuales seleccionables con iconos.
+- El modal ahora muestra el alquiler, el monto pendiente actual y el efecto de la operación antes de confirmar.
+- Se incorporaron estados claros: `Se registrará`, `Quedará pendiente` y `Selecciona un monto`.
+- Se bloquea la emisión cuando el monto es cero y se muestra una explicación inline.
+- El concepto se actualiza automáticamente al elegir el tipo de cobro.
+- El pie de acciones queda disponible al desplazarse por el modal, especialmente en pantallas pequeñas.
+- Los botones incluyen estados accesibles mediante `aria-pressed`, foco visible y mensajes de alerta/estado.
+- Se verificó el flujo en Preview seleccionando total y alternando entre Pagado y Por pagar.
+- Typecheck y 51 pruebas deterministas continúan pasando.
+
+---
+
+## v1.4.6 — 2026-08-26 — `Cambio`
+
+### Rediseño profesional de recibos PDF
+
+- Se reorganizó el recibo en una composición comercial A4 con mejor jerarquía visual.
+- El header oscuro conserva el logo centrado y los metadatos de folio, fecha y estado.
+- Los datos del cliente y del servicio ahora se muestran en tarjetas separadas y fáciles de escanear.
+- La tabla de conceptos incorpora encabezado oscuro, columnas alineadas y filas alternas.
+- El monto a cancelar queda destacado en un bloque visual independiente junto al resumen de total, abono y pendiente de pago.
+- Se mejoraron la separación de secciones, el bloque de GPS, la referencia del cliente y las líneas de firma.
+- La plantilla nativa Android fue alineada visualmente con la plantilla web, manteniendo compartir, WhatsApp y el formato de una sola página.
+- Se verificó la vista previa real del recibo sin solapamientos, junto con typecheck y 51 pruebas deterministas verdes.
+
+---
+
+## v1.4.5 — 2026-08-26 — `Cambio`
+
+### Logo oficial y header de recibos
+
+- Se incorporó el logo suministrado como marca visual fija del sistema en PWA y Android.
+- El PDF ahora usa un header oscuro con el logo centrado y sin repetir el nombre como texto.
+- El logo oficial se usa también como respaldo visual de recibos y en Configuración.
+- Se mantuvo `elspot_logo.png` sin cambios como icono actual del teléfono y splash.
+- Se eliminó el selector de logo personalizado para evitar que una marca anterior reemplace la identidad oficial.
+- La nueva APK debug se compiló correctamente: `android-app/app/build/outputs/apk/debug/app-debug.apk` (18,98 MB).
+- SHA-256 de la APK: `13AD005E9AC38F66DE867A028DDA7CEEF7C233662C6ECBD37E9D31DE5E4E5589`.
+- PWA validada con typecheck, 51 pruebas y build de producción; Android validado con pruebas JVM, compilación instrumentada y lint.
+
+---
+
+## v1.4.4 — 2026-08-26 — `Cambio`
+
+### Recibos, GPS y datos venezolanos
+
+- Los recibos de PWA y APK distinguen explícitamente **Pagado** y **Por pagar**.
+- `Pagado` registra el monto como abono y `Por pagar` conserva el monto pendiente.
+- El PDF muestra logo, nombre comercial, cliente, estado de pago y usa el nombre del cliente en el archivo.
+- La captura GPS intenta completar automáticamente la dirección legible; las coordenadas permanecen como respaldo.
+- Cédulas/RIF y teléfonos se normalizan al formato venezolano (`V-12.345.678`, `J-123456789`, `0412-1234567`).
+- Se eliminó el campo correo de la pantalla de clientes; los valores históricos se conservan solo para compatibilidad de respaldos.
+- Android incorpora migración Room 2 -> 3 para el estado de pago de recibos existentes.
+- Para notificar nuevas versiones de la APK se documentó el flujo recomendado: endpoint de versión, notificación persistente, descarga firmada y confirmación manual de instalación. La automatización requiere todavía un backend o servicio de distribución.
+- La validación posterior quedó completada: PWA con 51 pruebas deterministas verdes, typecheck y build de producción; Android con pruebas JVM, compilación instrumentada, lint y `assembleDebug` exitosos.
+- APK debug generada el 2026-08-26: `android-app/app/build/outputs/apk/debug/app-debug.apk`.
+- SHA-256 de esta compilación: `2CB3370B93FD663D184D3E838DBFE22F644421DE9340AF7C8437EC4831762402`.
+
+---
+
+## v1.4.3 — 2026-08-26 — `Cambio`
+
+### Identidad de la APK: EL SPOT TOLDOS
+
+- Se reemplazó el ícono de fábrica por el logo cuadrado suministrado (`elspot_logo.png`).
+- El launcher, el ícono redondo y el splash de Android usan ahora el logo oficial.
+- El nombre que aparece instalado en el teléfono cambió a **EL SPOT TOLDOS**.
+- Se eliminó el texto **CONCEPT STORE** de la marca visible, el encabezado de navegación y el PDF de recibos.
+- La documentación y el respaldo visual de recibos quedan alineados con la nueva identidad.
+
+---
+
+## v1.4.1 — 2026-08-26 — `Corrección`
+
+### Cierre de validación de la APK
+
+- Se corrigieron recursos de tema API 27/31 y cargas asíncronas Compose detectadas por lint.
+- `lintDebug` queda exitoso; permanecen únicamente advertencias de dependencias, orientación
+  y APIs de iconos deprecadas, sin errores bloqueantes.
+- Se confirmó `assembleDebug` con APK en `android-app/app/build/outputs/apk/debug/app-debug.apk`.
+- Se confirmó `testDebugUnitTest` con 12 pruebas verdes y la compilación de la prueba Compose
+  instrumentada. No se ejecutó en dispositivo porque ADB no reportó emuladores ni teléfonos.
+- Se mantuvo el permiso mínimo: ubicación y notificaciones; se retiró `SCHEDULE_EXACT_ALARM`
+  porque WorkManager no requiere alarmas exactas.
+
+---
+
+## v1.4.2 — 2026-08-26 — `Corrección`
+
+### Auditoría E2E, integridad de inventario y UX operativa
+
+- La PWA ahora valida alquileres en la store antes de persistirlos: cliente existente,
+  líneas completas sin duplicados, GPS válido, total coherente, abono dentro de límites
+  y disponibilidad física por unidades.
+- Se añadió `unidades` al inventario con migración lógica de respaldos antiguos (1 unidad
+  por defecto); el panel, formularios y tarjetas muestran unidades reales disponibles.
+- La emisión de recibos y el registro del abono se realizan en una única actualización,
+  evitando dobles cargos y congelando en el snapshot el saldo posterior al pago.
+- Se añadió bitácora persistente en la PWA, visible como módulo propio y exportable en
+  respaldos v2; los respaldos v1 siguen siendo aceptados.
+- Se bloquearon transiciones inválidas de alquileres cerrados y se agregaron mensajes
+  inline para que errores de inventario no cierren los formularios.
+- Se agregaron 13 pruebas deterministas nuevas de validación y respaldos: la PWA queda
+  con **49 pruebas verdes**.
+- Se restauró y verificó la pantalla nativa de alquileres tras la auditoría; la APK pasa
+  **12 pruebas JVM**, compilación de prueba instrumentada, `lintDebug` y `assembleDebug`.
+- `build` de producción PWA correcto. La prueba instrumentada requiere emulador/teléfono
+  ADB conectado; no se ejecutó físicamente en este entorno.
+
+---
+
+## v1.4.0 — 2026-08-25 — `Nuevo`
+
+### APK nativa funcional de EL SPOT
+
+- Se implemento `android-app/` con Kotlin, Jetpack Compose y Material 3 en tema oscuro.
+- Se agrego persistencia local con Room y DataStore: clientes, inventario por unidades,
+  alquileres 12h/24h, GPS, pagos, recibos snapshot, bitacora y configuracion.
+- Se agregaron reglas de dominio para bloquear doble reserva, toldos en reparacion o
+  retirados, abonos superiores al monto pendiente y coordenadas GPS invalidas.
+- Se implemento migracion Room 1 -> 2 para unidades de inventario y migracion JSON
+  bidireccional con el formato de la PWA, incluyendo fechas ISO locales y recibos legacy.
+- Se implementaron PDF nativo con logo configurable, moneda `$` + Bs a tasa congelada,
+  enlace GPS, FileProvider/Sharesheet, fallback de WhatsApp y mensaje profesional.
+- Se agregaron recordatorios de devolucion con WorkManager, canales de notificacion,
+  permiso Android 13+ y cancelacion al devolver, cancelar, importar, restablecer o apagar.
+- Se agregaron 12 pruebas JVM de reglas, dinero y snapshots, mas una prueba Compose de
+  arranque. La compilacion Kotlin y `testDebugUnitTest` quedan verificadas.
+- Documentacion nativa: `android-app/README.md`; el catalogo `awesome-android-ui` se
+  conserva como referencia, sin incorporar dependencias antiguas al APK.
+
+---
+
+## v1.2.0 — 2026-08-25 — `Cambio`
+
+### Modalidad 12h/24h, moneda dual ($ + Bs), paleta oscura y rebranding EL SPOT
+
+- **Modalidad de alquiler por 12h o 24h** — el alquiler ya no usa fechas ni tiempo de
+  uso: se elige **modalidad 12 horas (mitad de tarifa)** o **24 horas (tarifa completa)**.
+  - `ModalidadAlquiler` en el modelo; alquileres antiguos sin modalidad se normalizan a 24h.
+  - Nueva función `calcularMontoModalidad`/`tarifaEfectiva` (factor 0,5 para 12h) con pruebas.
+  - El formulario muestra selector de modalidad, subtotal base y total recalcular al instante.
+  - Lista, detalle, panel y PDF muestran la modalidad y la tarifa efectiva.
+- **Moneda principal $ y secundaria Bs a tasa manual** —
+  - `Config.tasaBs`: tasa de cambio manual (Bs por 1 $) configurable en Configuración
+    (reemplaza al selector de moneda). La moneda principal pasa a ser siempre `$`.
+  - Nuevas funciones `formatearMontoDual` y `formatearBsEquivalente` (con pruebas).
+  - Montos en Panel, Toldos, Alquileres, Recibos y WhatsApp muestran `$ X (Bs Y)`.
+  - El PDF del recibo muestra el equivalente en Bs junto al MONTO A CANCELAR con la tasa
+    usada (congelada en el snapshot del recibo).
+- **Paleta oscura profesional** — fondo `#0b1018` con resplandores teal sutiles, tarjetas
+  y modales en superficies oscuras (slate), inputs oscuros, etiquetas de estado con
+  variantes translúcidas, barra lateral y navegación móvil en negro con acentos teal.
+- **Rebranding "EL SPOT"** — marca del sistema en la barra lateral y el encabezado móvil
+  (réplica estilizada del logo: bloque negro + tipografía condensada "EL SPOT" con
+  subtítulo "CONCEPT STORE"), título de pestaña, manifest de la PWA, README y docs.
+- Se reemplazó el emoji ✅ de confirmación por el icono `CheckCircle2` de lucide.
+
+---
+
+## v1.2.1 — 2026-08-25 — `Cambio`
+
+### Ajuste de paleta: azul acero y cian sobre fondo oscuro
+
+- Se reemplazaron los acentos teal/verde por una paleta azul acero y cian frío,
+  más compatible con la identidad oscura de EL SPOT.
+- Se actualizaron botones, navegación, dropdowns, modal, tarjetas, estados,
+  confirmaciones y equivalentes visuales en los módulos.
+- Se corrigieron clases de fondo duplicadas en Alquileres.
+- El PDF ahora usa el mismo color de marca azul acero en encabezados y tabla.
+- Se conservaron ámbar para alertas y rojo para acciones destructivas.
+
+---
+
+## v1.3.0 — 2026-08-25 — `Cambio`
+
+### Referencia UI para la futura APK de EL SPOT
+
+- Se clono `https://github.com/wasabeef/awesome-android-ui` en
+  `references/awesome-android-ui`, fijado al commit
+  `312f9be3c50b3ea33ff3ba7eb9aa1c21b52de8b2`.
+- Se audito el catalogo y se documentaron patrones utiles para navegacion,
+  bottom sheets, listas, formularios, calendarios, graficos y microinteracciones.
+- La futura APK usara Kotlin, Jetpack Compose y Material 3; el repositorio se
+  conserva como referencia visual y no se incorporan sus librerias antiguas sin
+  validar mantenimiento, compatibilidad y licencia.
+- Se definio el plan tecnico para notificaciones con WorkManager y envio seguro
+  de recibos mediante Sharesheet/FileProvider y WhatsApp.
+- Nueva documentacion: `docs/APK_UI_REFERENCIA.md`.
+
+---
+
+## v1.0.0 — 2026-08-25 — `Nuevo`
+
+### Primera versión completa del sistema
+
+Entrega inicial funcional, estructurada por módulos y documentada.
+
+**Cambios incluidos en esta versión (resumen del desarrollo):**
+
+- **v0.1.0 · Base del proyecto** — `Nuevo`
+  - Creación del proyecto con Vite + React + TypeScript + Tailwind CSS.
+  - Configuración de PWA (instalable, sin conexión) con `vite-plugin-pwa`.
+  - Estructura de carpetas por módulos, componentes compartidos (Layout, Modal, Campos, Etiquetas).
+  - Iconos de la aplicación generados por script (`scripts/generar-iconos.mjs`).
+
+- **v0.2.0 · Capa de datos** — `Nuevo`
+  - Modelos de datos del dominio (`src/types/modelos.ts`): Cliente, Toldo, Alquiler, Recibo, Configuración.
+  - Tienda central con Zustand y persistencia automática en `localStorage` (`src/data/store.ts`).
+  - Funciones puras de cálculo (montos, pendientes de pago, días), formato (moneda, fechas) y folios correlativos.
+  - Exportación e importación de respaldos en JSON (`src/data/respaldo.ts`).
+  - Pruebas unitarias con Vitest (19 casos en la primera tanda).
+
+- **v0.3.0 · Configuración y Panel** — `Nuevo`
+  - Módulo de configuración del negocio (nombre, RIF, teléfono, dirección, logo, moneda).
+  - Panel de control con tarjetas de resumen y lista de alquileres recientes.
+
+- **v0.4.0 · Módulo Clientes** — `Nuevo`
+  - Registro, búsqueda, edición y eliminación de clientes con validaciones.
+
+- **v0.5.0 · Módulo Toldos** — `Nuevo`
+  - Inventario de toldos con tamaño, tarifa y estados (disponible, alquilado, en reparación, retirado).
+
+- **v0.6.0 · Módulo Alquileres** — `Nuevo`
+  - Creación y edición de alquileres con múltiples toldos, fechas, tiempo de uso y montos.
+  - Captura de coordenadas GPS con la geolocalización del navegador y enlace al mapa.
+  - Folios correlativos de alquiler (ALQ-0001…), estados del ciclo de vida y vista de detalle.
+
+- **v0.7.0 · Módulo Recibos** — `Nuevo`
+  - Emisión de recibos con folio correlativo automático (REC-0001…).
+  - Datos congelados del alquiler (snapshot) para que el PDF no cambie al editar.
+  - Generación del recibo en PDF con jsPDF (logo, cliente, tiempo de uso, GPS, montos, firmas).
+  - Vista previa del PDF, descarga, envío por WhatsApp y compartir con la API nativa.
+  - Registro opcional del pago como abono del alquiler al emitir el recibo.
+
+## v1.1.0 — 2026-08-25 — `Cambio`
+
+### Mejora visual integral (design system + iconos profesionales)
+
+- **Iconos profesionales SVG (lucide-react)**: se eliminaron todos los emojis de la interfaz
+  (navegación, tarjetas del panel, botones de recibos, configuración y alquileres) y se
+  reemplazaron por iconos de Lucide, consistentes, nítidos y vectoriales.
+- **Selects sin el dropdown nativo cuadrado**: se creó `SelectPersonalizado`
+  (combobox propio con panel flotante redondeado, sombra, chevron animado, check en la
+  opción activa, soporte de teclado y cierre al hacer clic fuera). Se aplicó en
+  formularios (`CampoSelect`) y filtros (`SelectFiltro`).
+- **Gradientes y acabado profesional**: fondo con degradado suave, sidebar con gradiente
+  teal→emerald, botones primarios/peligro con gradiente y sombra, tarjetas con sombras
+  suaves y esquinas redondeadas, modales con barra de gradiente superior y animaciones
+  de entrada (dropdown, modal, fondo).
+- **Detalle**: clase `btn-icono` para botones de acción compactos (Recibos), escala de
+  color `marca` completada (200-400) en Tailwind, botón "Nuevo" con icono `Plus` en
+  todos los módulos.
+- Se eliminó `src/components/Icono.tsx` (re-export innecesario; los componentes importan
+  de lucide-react directamente).
+
+## v1.1.1 — 2026-08-25 — `Corrección`
+
+### Auditoría e2e: bugs corregidos y mejoras
+
+- **Bug: abono duplicado al emitir recibo** — al emitir un recibo con tipo "Abono ya
+  recibido" y la opción "Registrar como abono" activa, el abono se sumaba dos veces
+  (100 + 100 = 200 cuando ya estaba en 100). Ahora, si el recibo es por el abono ya
+  registrado, no se suma de nuevo.
+- **Bug: logo en PDF** — `pdf.ts` siempre incrustaba el logo como `PNG` aunque fuera
+  JPEG o WebP, lo que podía romper o distorsionar el PDF. Ahora se detecta el formato
+  real (PNG/JPEG) y los WebP se convierten a PNG vía canvas antes de incrustar.
+- **Mejora: sincronización de estados del inventario** — nueva función pura
+  `calcularEstadosToldos` (`src/lib/estados.ts`): al crear/editar/eliminar un alquiler,
+  los toldos ocupados pasan automáticamente a "Alquilado" y vuelven a "Disponible" al
+  devolverse o cancelarse. Respeta los estados manuales "En reparación" y "Retirado".
+  Con 5 pruebas unitarias nuevas (total 26).
+- **Mejora: validación de fechas** — el formulario de alquiler ahora rechaza guardar
+  con fecha de fin anterior a la de inicio.
+- **Mejora: autocompletado de tiempo de uso** — si el usuario escribe el tiempo a mano,
+  deja de sobrescribirse al cambiar las fechas.
+- **Mejora: normalización de respaldos** — al restaurar un respaldo antiguo sin
+  `ultimoFolioAlquiler`, se normaliza a 0 (evita folios `ALQ-NaN`) y se resincronizan
+  los estados de los toldos.
+- **Limpieza**: se eliminó código muerto (interfaz `DimensionesLogo` en pdf.ts, variable
+  sin uso en store.ts).
+
+## Correcciones aplicadas durante el desarrollo
+
+| Fecha | Tipo | Descripción |
+| --- | --- | --- |
+| 2026-08-25 | `Corrección` | Agregado el campo `ultimoFolioAlquiler` al modelo `Config` (faltaba para la correlatividad de alquileres). |
+| 2026-08-25 | `Corrección` | Corregido error de tipos en el módulo de alquileres (selectores de tienda sin uso y `moneda` no declarada en `FormularioAlquiler`). |
+| 2026-08-25 | `Corrección` | Fechas se mostraban un día antes (28/08 → 27/08): JavaScript interpreta `"YYYY-MM-DD"` como medianoche UTC. Se fuerza la hora local en `parsearFecha` y se agregaron pruebas. |
+| 2026-08-25 | `Cambio` | Reemplazado el `alert()` bloqueante tras emitir un recibo por una pantalla de confirmación integrada en el modal, con acceso directo al módulo de Recibos. |
+
+---
+
+## Cómo actualizar esta bitácora
+
+Cada vez que se haga un cambio al sistema:
+
+1. Crear una entrada nueva **arriba** con la fecha y la nueva versión (subir la menor:
+   `1.0.0` → `1.1.0` para cambios, `1.0.1` para correcciones).
+2. Indicar el **tipo** (`Nuevo`, `Cambio` o `Corrección`) y describir qué se hizo y por qué.
+3. Si son varios cambios, agruparlos bajo la misma versión.

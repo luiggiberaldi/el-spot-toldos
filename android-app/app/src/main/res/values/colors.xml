@@ -1,0 +1,7 @@
+<resources>
+    <color name="elspot_black">#080C12</color>
+    <color name="elspot_surface">#111927</color>
+    <color name="elspot_blue">#2D8FD5</color>
+    <color name="elspot_cyan">#55D6E8</color>
+    <color name="elspot_white">#F7FAFC</color>
+</resources>

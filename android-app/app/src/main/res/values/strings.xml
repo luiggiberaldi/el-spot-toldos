@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">EL SPOT TOLDOS</string>
+    <string name="app_description">Control de alquiler de toldos, recibos y pagos</string>
+    <string name="file_provider_authority">com.elspot.toldos.fileprovider</string>
+</resources>
