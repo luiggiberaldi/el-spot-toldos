@@ -55,4 +55,18 @@ class AppUpdateTest {
             """
         )
     }
+
+    @Test
+    fun computesAccurateSha256ForFile() {
+        val tempFile = java.io.File.createTempFile("test-sha", ".tmp")
+        try {
+            tempFile.writeText("EL SPOT TOLDOS TEST", Charsets.UTF_8)
+            val hash = GithubUpdateClient.sha256(tempFile)
+            // echo -n "EL SPOT TOLDOS TEST" | sha256sum
+            assertEquals(64, hash.length)
+            assertTrue(hash.matches(Regex("[a-f0-9]{64}")))
+        } finally {
+            tempFile.delete()
+        }
+    }
 }
