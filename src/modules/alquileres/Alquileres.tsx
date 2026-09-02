@@ -65,6 +65,7 @@ export function Alquileres({ navegar }: { navegar: (vista: Vista) => void }) {
   const [editando, setEditando] = useState<Alquiler | null>(null);
   const [emitirDe, setEmitirDe] = useState<Alquiler | null>(null);
   const [errorOperacion, setErrorOperacion] = useState('');
+  const [confirmarEliminar, setConfirmarEliminar] = useState<Alquiler | null>(null);
 
   const nombreCliente = (id: string) =>
     clientes.find((c) => c.id === id)?.nombre ?? 'Cliente eliminado';
@@ -93,18 +94,13 @@ export function Alquileres({ navegar }: { navegar: (vista: Vista) => void }) {
   };
 
   const eliminar = (alquiler: Alquiler) => {
-    if (
-      window.confirm(
-        `¿Eliminar el alquiler ${alquiler.folio}? Los recibos emitidos se conservarán.`
-      )
-    ) {
-      try {
-        eliminarAlquiler(alquiler.id);
-        setErrorOperacion('');
-        setDetalle(null);
-      } catch (error) {
-        setErrorOperacion(error instanceof Error ? error.message : 'No se pudo eliminar el alquiler.');
-      }
+    try {
+      eliminarAlquiler(alquiler.id);
+      setErrorOperacion('');
+      setDetalle(null);
+      setConfirmarEliminar(null);
+    } catch (error) {
+      setErrorOperacion(error instanceof Error ? error.message : 'No se pudo eliminar el alquiler.');
     }
   };
 
@@ -224,8 +220,24 @@ export function Alquileres({ navegar }: { navegar: (vista: Vista) => void }) {
               setEmitirDe(detalle);
               setDetalle(null);
             }}
-            alEliminar={() => eliminar(detalle)}
+            alEliminar={() => {
+              setConfirmarEliminar(detalle);
+              setDetalle(null);
+            }}
           />
+        </Modal>
+      )}
+
+      {confirmarEliminar && (
+        <Modal titulo="Eliminar alquiler" alCerrar={() => setConfirmarEliminar(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300">¿Eliminar el alquiler <strong className="text-white">{confirmarEliminar.folio}</strong>? Los recibos emitidos se conservarán.</p>
+            <p className="text-xs text-amber-300">Esta acción libera las unidades del inventario y no se puede deshacer.</p>
+            <div className="flex justify-end gap-2">
+              <button className="btn-secundario" onClick={() => setConfirmarEliminar(null)}>Cancelar</button>
+              <button className="btn-peligro" onClick={() => eliminar(confirmarEliminar)}>Eliminar alquiler</button>
+            </div>
+          </div>
         </Modal>
       )}
 
@@ -432,7 +444,7 @@ function FormularioAlquiler({
       alCerrar={alCerrar}
       anchoMaximo="max-w-3xl"
     >
-      <div className="space-y-4">
+      <div className="space-y-5 pb-1">
         {/* Cliente */}
         <CampoSelect
           label="Cliente"
@@ -460,79 +472,95 @@ function FormularioAlquiler({
         )}
 
         {/* Toldos del alquiler */}
-        <div>
-          <p className="label">
-            Toldos alquilados <span className="text-red-400">*</span>
-          </p>
-          <div className="space-y-2">
+        <div className="rounded-2xl border border-slate-800/70 bg-slate-900/50 p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-200">
+              Toldos alquilados <span className="text-red-400">*</span>
+            </p>
+            {toldos.length > 0 && (
+              <button className="btn-secundario !px-2.5 !py-1 text-xs" onClick={agregarItem}>
+                <Plus className="h-3.5 w-3.5" />
+                Agregar
+              </button>
+            )}
+          </div>
+          <div className="space-y-3">
             {items.map((item, indice) => (
-              <div key={indice} className="flex flex-wrap items-end gap-2">
-                <div className="min-w-[180px] flex-1">
-                  <CampoSelect
-                    label={`Toldo ${indice + 1}`}
-                    valor={item.toldoId}
-                    alCambiar={(toldoId) => seleccionarToldo(indice, toldoId)}
-                    opciones={[
-                      { valor: '', etiqueta: '— Selecciona —' },
-                      ...toldos
-                        .filter((toldo) =>
-                          toldo.id === item.toldoId ||
-                          (toldo.estado !== 'en_reparacion' &&
-                            toldo.estado !== 'retirado' &&
-                            unidadesDisponibles(toldo, alquileres, editando?.id) > 0)
-                        )
-                        .map((t) => ({
-                          valor: t.id,
-                          etiqueta: `${t.nombre} (${t.tamano || 'sin tamaño'} · ${unidadesDisponibles(t, alquileres, editando?.id)} disp.)`
-                        }))
-                    ]}
-                  />
+              <div
+                key={indice}
+                className="rounded-xl border border-slate-800/80 bg-slate-900/70 p-2.5 sm:p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-marca-300">
+                    Toldo {indice + 1}
+                  </span>
+                  <span className="flex-1" />
+                  <button
+                    className="btn-secundario !h-8 !w-8 !px-0 !py-0 text-red-400"
+                    onClick={() => quitarItem(indice)}
+                    aria-label="Quitar toldo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="w-20">
-                  <CampoNumero
-                    label="Cant."
-                    valor={item.cantidad}
-                    alCambiar={(v) => cambiarItem(indice, { cantidad: v })}
-                    paso="1"
-                    min={1}
-                  />
+                <div className="mt-2 grid grid-cols-12 items-end gap-2">
+                  <div className="col-span-12 sm:col-span-6">
+                    <CampoSelect
+                      label=""
+                      valor={item.toldoId}
+                      alCambiar={(toldoId) => seleccionarToldo(indice, toldoId)}
+                      placeholder="— Selecciona un toldo —"
+                      opciones={[
+                        { valor: '', etiqueta: '— Selecciona —' },
+                        ...toldos
+                          .filter((toldo) =>
+                            toldo.id === item.toldoId ||
+                            (toldo.estado !== 'en_reparacion' &&
+                              toldo.estado !== 'retirado' &&
+                              unidadesDisponibles(toldo, alquileres, editando?.id) > 0)
+                          )
+                          .map((t) => ({
+                            valor: t.id,
+                            etiqueta: `${t.nombre} (${t.tamano || 'sin tamaño'} · ${unidadesDisponibles(t, alquileres, editando?.id)} disp.)`
+                          }))
+                      ]}
+                    />
+                  </div>
+                  <div className="col-span-3 sm:col-span-2">
+                    <CampoNumero
+                      label="Cant."
+                      valor={item.cantidad}
+                      alCambiar={(v) => cambiarItem(indice, { cantidad: v })}
+                      paso="1"
+                      min={1}
+                    />
+                  </div>
+                  <div className="col-span-6 sm:col-span-3">
+                    <CampoNumero
+                      label={modalidad === '12h' ? 'Precio 12h' : 'Precio 24h'}
+                      valor={item.tarifa}
+                      alCambiar={(v) => cambiarItem(indice, { tarifa: v })}
+                      min={0}
+                    />
+                  </div>
+                  <div className="col-span-3 flex sm:col-span-1" />
                 </div>
-                <div className="w-32">
-                  <CampoNumero
-                    label={modalidad === '12h' ? 'Precio 12h' : 'Precio 24h'}
-                    valor={item.tarifa}
-                    alCambiar={(v) => cambiarItem(indice, { tarifa: v })}
-                    min={0}
-                  />
-                </div>
-                <button
-                  className="btn-secundario !px-2.5 !py-2 text-red-400"
-                  onClick={() => quitarItem(indice)}
-                  aria-label="Quitar toldo"
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </div>
             ))}
           </div>
-          {toldos.length === 0 ? (
+          {toldos.length === 0 && (
             <p className="mt-2 text-xs text-amber-400">
-              No hay toldos en el inventario.{' '}
-              <button
-                className="inline-block min-h-6 py-1 align-baseline font-medium underline"
-                onClick={() => {
-                  alCerrar();
-                  navegar('toldos');
-                }}
-              >
-                Crear un toldo aquí
-              </button>
-            </p>
-          ) : (
-            <button className="btn-secundario mt-2 !py-1.5 text-sm" onClick={agregarItem}>
-              <Plus className="h-4 w-4" />
-              Agregar toldo
+            No hay toldos en el inventario.{' '}
+            <button
+              className="inline-block min-h-6 py-1 align-baseline font-medium underline"
+              onClick={() => {
+                alCerrar();
+                navegar('toldos');
+              }}
+            >
+              Crear un toldo aquí
             </button>
+            </p>
           )}
         </div>
 
@@ -556,31 +584,41 @@ function FormularioAlquiler({
         </div>
 
         {/* Dirección + GPS */}
-        <div>
+        <div className="rounded-2xl border border-slate-800/70 bg-slate-900/50 p-3 sm:p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-marca-400" />
+            <p className="text-sm font-semibold text-gray-200">Entrega y ubicación</p>
+          </div>
           <CampoTexto
             label="Dirección del evento"
             valor={direccion}
             alCambiar={setDireccion}
             placeholder="Calle, urbanización, referencia…"
           />
-          <div className="mt-2 flex flex-wrap items-center gap-2">              <button
-                className="btn-secundario"
+          <div className="mt-3">
+            {lat === null || lng === null ? (
+              <button
+                className="btn-secundario w-full justify-center !py-2.5"
                 onClick={capturarUbicacion}
                 disabled={capturando}
               >
                 <MapPin className="h-4 w-4 text-marca-400" />
                 {capturando ? 'Capturando…' : 'Capturar ubicación GPS'}
               </button>
-            {lat !== null && lng !== null && (
-              <span className="inline-flex items-center gap-2 text-sm text-gray-400">
-                {formatearCoordenadas(lat, lng)}{' '}
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-marca-500/30 bg-marca-500/10 px-3 py-2.5">
+                <MapPin className="h-4 w-4 shrink-0 text-marca-300" />
+                <span className="text-sm font-medium text-marca-200">
+                  {formatearCoordenadas(lat, lng)}
+                </span>
+                <span className="flex-1" />
                 <a
-                  className="font-medium text-marca-400 underline"
+                  className="text-sm font-medium text-marca-400 underline"
                   href={enlaceMapa(lat, lng)}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Ver en el mapa
+                  Mapas
                 </a>
                 <button
                   className="text-sm text-red-400 hover:underline"
@@ -591,13 +629,17 @@ function FormularioAlquiler({
                 >
                   Quitar
                 </button>
-              </span>
+              </div>
             )}
+            {errorGps && <p className="mt-2 text-xs text-red-400">{errorGps}</p>}
           </div>
-          {errorGps && <p className="mt-1 text-xs text-red-400">{errorGps}</p>}
         </div>
 
         {/* Montos y estado operativo */}
+        <div className="flex items-center gap-2">
+          <WalletCards className="h-4 w-4 text-cyan-300" />
+          <p className="text-sm font-semibold text-gray-200">Pago y estado</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <CampoNumero
@@ -645,27 +687,33 @@ function FormularioAlquiler({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg bg-marca-500/10 px-4 py-3 text-sm">
-          <p>
-            <span className="text-gray-400">Subtotal (24h): </span>
-            <span className="font-medium text-gray-300">{formatearMonto(subtotal, moneda)}</span>
-          </p>
-          {modalidad === '12h' && (
-            <p>
-              <span className="text-gray-400">Modalidad 12h (−50%): </span>
-              <span className="font-medium text-gray-300">{formatearMonto(total, moneda)}</span>
-            </p>
-          )}
-          <p>
-            <span className="text-gray-400">Total: </span>
-            <span className="font-bold text-white">{formatearMontoDual(total, moneda, tasaBs)}</span>
-          </p>
-          <p>
-            <span className="text-gray-400">Pendiente: </span>
-            <span className={`font-bold ${saldo > 0 ? 'text-red-400' : 'text-cyan-300'}`}>
-              {formatearMontoDual(saldo, moneda, tasaBs)}
-            </span>
-          </p>
+        <div className="overflow-hidden rounded-2xl border border-slate-800/70">
+          <div className="flex items-center gap-2 bg-slate-800/50 px-4 py-2.5">
+            <WalletCards className="h-4 w-4 text-cyan-300" />
+            <p className="text-sm font-semibold text-gray-200">Resumen del alquiler</p>
+          </div>
+          <div className="divide-y divide-slate-800/70 bg-slate-900/50 px-4 py-1 text-sm">
+            {modalidad === '12h' && (
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">Subtotal (24h)</span>
+                <span className="font-medium text-gray-300">{formatearMonto(subtotal, moneda)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between py-2.5">
+              <span className="text-gray-400">Total{modalidad === '12h' ? ' (−50%)' : ''}</span>
+              <span className="font-semibold text-white">{formatearMontoDual(total, moneda, tasaBs)}</span>
+            </div>
+            <div className="flex items-center justify-between py-2.5">
+              <span className="text-gray-400">Abono</span>
+              <span className="font-medium text-gray-300">{formatearMontoDual(abonoNumero, moneda, tasaBs)}</span>
+            </div>
+            <div className="flex items-center justify-between py-2.5">
+              <span className="text-gray-400">Pendiente</span>
+              <span className={`font-bold ${saldo > 0 ? 'text-amber-300' : 'text-emerald-300'}`}>
+                {formatearMontoDual(saldo, moneda, tasaBs)}
+              </span>
+            </div>
+          </div>
         </div>
 
         <CampoTextoArea
@@ -677,11 +725,11 @@ function FormularioAlquiler({
 
         {error && <p className="text-sm font-medium text-red-400">{error}</p>}
 
-        <div className="flex justify-end gap-2">
+        <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-end gap-2 border-t border-slate-800 bg-slate-900/95 px-5 py-3 backdrop-blur">
           <button className="btn-secundario" onClick={alCerrar}>
             Cancelar
           </button>
-          <button className="btn-primario" onClick={guardar}>
+          <button className="btn-primario min-w-[8.5rem]" onClick={guardar}>
             Guardar alquiler
           </button>
         </div>

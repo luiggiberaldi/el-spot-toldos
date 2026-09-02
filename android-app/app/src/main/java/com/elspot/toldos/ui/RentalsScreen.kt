@@ -156,6 +156,25 @@ private fun RentalRow(rental: AlquilerEntity, state: AppUiState, onOpen: () -> U
 private data class RentalLineState(val tentId: String = "", val quantity: String = "1", val tariff: String = "")
 
 @Composable
+private fun FormLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 4.dp)
+    )
+}
+
+@Composable
+private fun FormDivider() {
+    Divider(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    )
+}
+
+@Composable
 private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewModel: AppViewModel, onDismiss: () -> Unit, onSave: (RentalDraft) -> Unit) {
     var clientId by remember(initial) { mutableStateOf(initial?.clienteId ?: "") }
     val lines = remember(initial?.id) { mutableStateListOf<RentalLineState>() }
@@ -199,13 +218,19 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item { ChoiceField("Cliente", clientId, state.clients.map { it.id to it.nombre }, { clientId = it }) }
-                item { Text("Toldos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) }
+                item { FormLabel("Toldos") }
                 items(lines.size, key = { it }) { index -> RentalLineEditor(index, lines[index], state, mode, initial?.id, status == RentalStatus.ACTIVE || status == RentalStatus.DELIVERED, { lines[index] = it }, { if (lines.size > 1) lines.removeAt(index) }) }
                 item { TextButton(onClick = { lines.add(RentalLineState()) }) { Icon(Icons.Default.Add, null); Spacer(Modifier.size(5.dp)); Text("Agregar toldo") } }
+                item { FormDivider() }
+                item { FormLabel("Duración y devolución") }
                 item { ChoiceField("Modalidad", mode, RentalMode.entries.map { it to "${it.label} (${if (it == RentalMode.H12) "precio configurado 12h" else "precio configurado 24h"})" }, { selected -> mode = selected; lines.replaceAll { line -> val tent = state.tents.firstOrNull { it.id == line.tentId }; val price = if (selected == RentalMode.H12) tent?.tarifa12hCents ?: tent?.tarifaCents?.div(2) else tent?.tarifaCents; line.copy(tariff = price?.let { "%.2f".format(it / 100.0) } ?: line.tariff) } }) }
                 item { DateTimeField("Inicio del alquiler", startAt, { startAt = it }); Text("Devolución calculada: ${formatDateTime(returnAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp)) }
+                item { FormDivider() }
+                item { FormLabel("Entrega y ubicación") }
                 item { OutlinedTextField(address, { address = it }, label = { Text("Dirección del evento") }, minLines = 2) }
                 item { OutlinedButton(onClick = { if (location.hasPermission()) scope.launch { capturing = true; locationError = null; try { val result = location.current(); latitude = result.latitude; longitude = result.longitude; if (address.isBlank() && !result.address.isNullOrBlank()) address = result.address } catch (t: Throwable) { locationError = t.message } finally { capturing = false } } else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, enabled = !capturing, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.LocationOn, null); Spacer(Modifier.size(7.dp)); Text(if (capturing) "Capturando ubicación…" else "Capturar ubicación GPS") }; GpsSummary(latitude, longitude); ErrorMessage(locationError) }
+                item { FormDivider() }
+                item { FormLabel("Pago y estado") }
                 item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(deposit, { deposit = it }, label = { Text("Abono ($)") }, singleLine = true, modifier = Modifier.weight(1f)); ChoiceField("Estado", status, RentalStatus.entries.map { it to it.label }, { status = it }, modifier = Modifier.weight(1f)) } }
                 item { OutlinedTextField(notes, { notes = it }, label = { Text("Notas") }, minLines = 2) }
                 item { MoneySummary(totalCents, depositCents, state.config) }

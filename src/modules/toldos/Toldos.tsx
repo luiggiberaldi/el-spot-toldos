@@ -33,6 +33,7 @@ export function Toldos() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Toldo | null>(null);
   const [error, setError] = useState('');
+  const [confirmarEliminar, setConfirmarEliminar] = useState<Toldo | null>(null);
 
   const [nombre, setNombre] = useState('');
   const [tamano, setTamano] = useState('');
@@ -120,17 +121,12 @@ export function Toldos() {
   };
 
   const eliminar = (toldo: Toldo) => {
-    if (
-      window.confirm(
-        `¿Eliminar el toldo "${toldo.nombre}"? Los alquileres existentes se conservarán.`
-      )
-    ) {
-      try {
-        eliminarToldo(toldo.id);
-        setError('');
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'No se pudo eliminar el toldo.');
-      }
+    try {
+      eliminarToldo(toldo.id);
+      setError('');
+      setConfirmarEliminar(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'No se pudo eliminar el toldo.');
     }
   };
 
@@ -189,7 +185,7 @@ export function Toldos() {
                 </button>
                 <button
                   className="btn-secundario !px-3 !py-1.5 text-red-400 hover:bg-red-500/10"
-                  onClick={() => eliminar(toldo)}
+                  onClick={() => setConfirmarEliminar(toldo)}
                 >
                   Eliminar
                 </button>
@@ -197,6 +193,18 @@ export function Toldos() {
             </div>
           ))}
         </div>
+      )}
+
+      {confirmarEliminar && (
+        <Modal titulo="Eliminar toldo" alCerrar={() => setConfirmarEliminar(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300">¿Eliminar <strong className="text-white">{confirmarEliminar.nombre}</strong>? Los alquileres históricos se conservarán.</p>
+            <div className="flex justify-end gap-2">
+              <button className="btn-secundario" onClick={() => setConfirmarEliminar(null)}>Cancelar</button>
+              <button className="btn-peligro" onClick={() => eliminar(confirmarEliminar)}>Eliminar toldo</button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {modalAbierto && (

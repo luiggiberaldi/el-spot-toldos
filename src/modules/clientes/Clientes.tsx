@@ -26,6 +26,7 @@ export function Clientes() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Cliente | null>(null);
   const [error, setError] = useState('');
+  const [confirmarEliminar, setConfirmarEliminar] = useState<{ cliente: Cliente; aviso: string } | null>(null);
 
   const [nombre, setNombre] = useState('');
   const [cedula, setCedula] = useState('');
@@ -95,14 +96,7 @@ export function Clientes() {
     const aviso = tieneAlquileres
       ? `"${cliente.nombre}" tiene alquileres registrados. ¿Eliminarlo de todos modos? (Los alquileres se conservarán sin el cliente.)`
       : `¿Eliminar a "${cliente.nombre}"?`;
-    if (window.confirm(aviso)) {
-      try {
-        eliminarCliente(cliente.id);
-        setError('');
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'No se pudo eliminar el cliente.');
-      }
-    }
+    setConfirmarEliminar({ cliente, aviso });
   };
 
   // Memoizado: evita re-filtrar todo el listado en cada render (patrón de Bitacora).
@@ -180,6 +174,26 @@ export function Clientes() {
             </li>
           ))}
         </ul>
+      )}
+
+      {confirmarEliminar && (
+        <Modal titulo="Eliminar cliente" alCerrar={() => setConfirmarEliminar(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300">{confirmarEliminar.aviso}</p>
+            <div className="flex justify-end gap-2">
+              <button className="btn-secundario" onClick={() => setConfirmarEliminar(null)}>Cancelar</button>
+              <button className="btn-peligro" onClick={() => {
+                try {
+                  eliminarCliente(confirmarEliminar.cliente.id);
+                  setConfirmarEliminar(null);
+                  setError('');
+                } catch (error) {
+                  setError(error instanceof Error ? error.message : 'No se pudo eliminar el cliente.');
+                }
+              }}>Eliminar cliente</button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {modalAbierto && (

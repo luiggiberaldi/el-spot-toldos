@@ -23,13 +23,11 @@ export function textoReciboWhatsApp(datos: DatosRecibo): string {
 }
 
 /** Abre WhatsApp con un mensaje listo para enviar al número indicado. */
-export function abrirWhatsApp(telefono: string, mensaje: string): void {
+export function abrirWhatsApp(telefono: string, mensaje: string): boolean {
   const numero = numeroWhatsAppVenezolano(telefono);
-  if (!numero) {
-    alert('El cliente no tiene un teléfono registrado.');
-    return;
-  }
-  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, '_blank');
+  if (!numero) return false;
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
+  return true;
 }
 
 /** Comparte el PDF del recibo usando la API nativa de compartir (si está disponible). */

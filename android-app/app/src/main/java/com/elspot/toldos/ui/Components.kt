@@ -30,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -251,10 +252,35 @@ fun MoneySummary(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            MoneyRow("Total", formatDual(totalCents, config), emphasized = true)
-            MoneyRow("Abono", formatDual(depositCents, config))
-            MoneyRow("Saldo pendiente", formatDual(balance, config), emphasized = balance > 0L, danger = balance > 0L)
+        Column {
+            Text(
+                "Resumen del alquiler",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 4.dp)
+            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                MoneyRow("Total", formatDual(totalCents, config), emphasized = true)
+                MoneyRow("Abono", formatDual(depositCents, config))
+            }
+            Divider(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 0.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Pendiente", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    formatDual(balance, config),
+                    fontWeight = FontWeight.Bold,
+                    color = if (balance > 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                )
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }

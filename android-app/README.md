@@ -84,6 +84,19 @@ El autoupdate integrado usa GitHub Releases:
 
 La APK consulta `update.json` cada 12 horas y permite buscar manualmente desde Configuración. Si encuentra un `versionCode` mayor, descarga por HTTPS, valida SHA-256, notifica al usuario y abre el instalador con `FileProvider`. Para preservar datos, toda versión debe conservar `applicationId = com.elspot.toldos`, la misma firma, un `versionCode` mayor y migraciones Room válidas.
 
+### Verificar que una actualización no borre datos
+
+La instalación usa el instalador oficial de Android (misma `applicationId`), así que el proceso es una **actualización en sitio**: Room (`elspot.db`), DataStore, clientes, toldos, alquileres, recibos y configuración se conservan. No hay `uninstallApp`, no se llama `deleteDatabase` durante la actualización y `clearAll` solo existe detrás del botón **Restablecer datos** de Ajustes. La compilación con el mismo `versionCode` decide la copia de seguridad automática (Android conserva los datos previos cuando el `versionCode` sube).
+
+Comprobación manual en un dispositivo (APK sobre APK):
+
+1. Registrar al menos un cliente y un alquiler en la versión instalada.
+2. Comprobar `adb shell pm dump com.elspot.toldos | findstr versionCode` o, sin ADB, generar la segunda APK y subir su `versionCode`.
+3. Instalar la APK nueva sobre la anterior (no desinstalar).
+4. Abrir la app y confirmar que los datos siguen presentes.
+
+**Importante (firma y debug):** una APK `debug` se firma con `~/.android/debug.keystore`, que es estable en una misma máquina; por eso la actualización **debug→debug** conserva datos. En cambio, **cambiar a una keystore distinta (p. ej. publicar una `release` firmada con otra llave) provoca que Android fuerce el desinstalado y borre los datos**, o rechace la instalación (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). Para migrar de debug a una release de producción con datos reales: exportar el respaldo en la APK actual, desinstalar, instalar la release firmada y restaurar el respaldo. Toda release posterior debe usar la misma keystore de producción.
+
 ## WhatsApp
 
 La APK utiliza Sharesheet y FileProvider para compartir el PDF sin exponer rutas privadas. El usuario confirma el contacto y el envío. El envío automático sin interacción requiere WhatsApp Business Cloud API, backend, autenticación, plantillas y webhooks.

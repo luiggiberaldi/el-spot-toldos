@@ -19,7 +19,9 @@ export function Recibos() {
   const [reciboPorBorrar, setReciboPorBorrar] = useState<Recibo | null>(null);
   const [errorBorrado, setErrorBorrado] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [reciboPorAnular, setReciboPorAnular] = useState<Recibo | null>(null);
   const eliminarRecibo = useAppStore((s) => s.eliminarRecibo);
+  const anularRecibo = useAppStore((s) => s.anularRecibo);
 
   const abrirVista = async (recibo: Recibo) => {
     setVer(recibo);
@@ -133,6 +135,16 @@ export function Recibos() {
                 >
                   <Share2 className="h-4 w-4" />
                 </button>
+                {recibo.estado === 'pagado' && (
+                  <button
+                    className="btn-icono text-amber-300 hover:border-amber-400/50 hover:bg-amber-500/10"
+                    onClick={() => setReciboPorAnular(recibo)}
+                    title="Anular recibo y revertir abono"
+                    aria-label={`Anular recibo ${recibo.folio}`}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   className="btn-icono text-red-400 hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-300"
                   onClick={() => {
@@ -148,6 +160,31 @@ export function Recibos() {
             </li>
           ))}
         </ul>
+      )}
+
+      {reciboPorAnular && (
+        <Modal titulo="Anular recibo" alCerrar={() => setReciboPorAnular(null)}>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-semibold text-white">¿Anular el recibo {reciboPorAnular.folio}?</p>
+              <p className="mt-1">El recibo se conservará como comprobante y se revertirá su abono del alquiler.</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className="btn-secundario" onClick={() => setReciboPorAnular(null)}>Cancelar</button>
+              <button className="btn-peligro" onClick={() => {
+                try {
+                  anularRecibo(reciboPorAnular.id);
+                  setMensaje(`Recibo ${reciboPorAnular.folio} anulado y abono revertido.`);
+                  setReciboPorAnular(null);
+                } catch (error) {
+                  setErrorBorrado(error instanceof Error ? error.message : 'No se pudo anular el recibo.');
+                }
+              }}>
+                <AlertTriangle className="h-4 w-4" /> Anular recibo
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {reciboPorBorrar && (

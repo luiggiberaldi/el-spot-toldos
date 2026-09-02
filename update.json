@@ -1,8 +1,8 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0.0",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.0/el-spot-toldos-1.0.0.apk",
-  "sha256": "8fc9a3346453bb0e04b6297a4e3f84a70ba2219381f4cf90938209d1c4b17108",
-  "notes": "Versión inicial de EL SPOT TOLDOS.",
+  "versionCode": 2,
+  "versionName": "1.0.1",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.1/el-spot-toldos-1.0.1.apk",
+  "sha256": "4ef307a09fa86ae6176c598f7535e499fd3e5c1a34af258d6c29737f55711581",
+  "notes": "Mejoras de UI/UX en el formulario de alquiler y resumen financiero.",
   "mandatory": false
 }

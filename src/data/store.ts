@@ -9,6 +9,7 @@ import type {
   Toldo
 } from '../types/modelos';
 import { numeroDeFolio, siguienteFolio, siguienteFolioAlquiler } from '../lib/folio';
+import { redondearMonto } from '../lib/calculos';
 import { calcularEstadosToldos } from '../lib/estados';
 import {
   puedeCambiarEstadoAlquiler,
@@ -70,6 +71,8 @@ interface EstadoApp extends DatosCompletos {
   agregarRecibo: (recibo: Recibo) => void;
   /** Emite el recibo y registra el abono dentro de la misma actualización. */
   emitirRecibo: (recibo: Recibo, registrarAbono: boolean) => string;
+  /** Anula un recibo pagado y revierte su abono, conservando el documento para auditoría. */
+  anularRecibo: (id: string) => void;
   eliminarRecibo: (id: string) => void;
 
   actualizarConfig: (config: Config) => void;
@@ -243,6 +246,19 @@ export const useAppStore = create<EstadoApp>()(
         });
         return folioAsignado;
       },
+
+      anularRecibo: (id) =>
+        set((estado) => {
+          const recibo = estado.recibos.find((r) => r.id === id);
+          if (!recibo) throw new Error('El recibo que intentas anular ya no existe.');
+          if (recibo.estado !== 'pagado') throw new Error('Solo se pueden anular recibos pagados.');
+          const alquiler = estado.alquileres.find((a) => a.id === recibo.alquilerId);
+          if (!alquiler) throw new Error('No se encontró el alquiler relacionado.');
+          const abonoRevertido = Math.max(0, redondearMonto(alquiler.abono - recibo.monto));
+          const alquileres = estado.alquileres.map((a) => a.id === alquiler.id ? { ...a, abono: abonoRevertido } : a);
+          const recibos = estado.recibos.map((r) => r.id === id ? { ...r, estado: 'por_pagar' as const, datos: { ...r.datos, estado: 'por_pagar' as const, alquiler: { ...r.datos.alquiler, abono: abonoRevertido } } } : r);
+          return { alquileres, recibos, bitacora: [entradaBitacora('Corrección', 'Recibo', `Recibo ${recibo.folio} anulado y abono revertido`), ...estado.bitacora] };
+        }),
 
       eliminarRecibo: (id) =>
         set((estado) => ({

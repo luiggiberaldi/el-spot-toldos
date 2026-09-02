@@ -18,6 +18,7 @@ export function Configuracion() {
   const [guardado, setGuardado] = useState(false);
   const [errorOperacion, setErrorOperacion] = useState('');
   const [confirmacion, setConfirmacion] = useState('');
+  const [confirmarRestablecer, setConfirmarRestablecer] = useState(false);
   const inputImportar = useRef<HTMLInputElement>(null);
 
   const guardar = () => {
@@ -54,9 +55,7 @@ export function Configuracion() {
           return;
         }
         if (
-          window.confirm(
-            'Esto reemplazará todos los datos actuales por los del respaldo. ¿Continuar?'
-          )
+          true
         ) {
           try {
             restaurarDatos(datos.datos);
@@ -76,8 +75,7 @@ export function Configuracion() {
   };
 
   const restablecer = () => {
-    if (!window.confirm('¿Restablecer todos los datos? Se borrará clientes, toldos, alquileres y recibos.')) return;
-    if (!window.confirm('Esta acción es irreversible. Antes de continuar, exporta un respaldo. ¿Restablecer de todos modos?')) return;
+    setConfirmarRestablecer(false);
     restablecerTodo();
     setNegocio({
       nombre: 'EL SPOT',
@@ -212,12 +210,23 @@ export function Configuracion() {
               onChange={(e) => importar(e.target.files?.[0])}
             />
           </label>
-          <button className="btn-peligro" onClick={restablecer}>
+          <button className="btn-peligro" onClick={() => setConfirmarRestablecer(true)}>
             <Trash2 className="h-4 w-4" />
             Restablecer todo
           </button>
         </div>
       </section>
+
+      {confirmarRestablecer && (
+        <div className="tarjeta border-red-400/30 bg-red-500/10" role="alertdialog" aria-modal="true" aria-labelledby="titulo-restablecer">
+          <h2 id="titulo-restablecer" className="font-semibold text-white">¿Restablecer todos los datos?</h2>
+          <p className="mt-2 text-sm text-red-100/80">Se eliminarán clientes, toldos, alquileres y recibos de este dispositivo. Exporta un respaldo antes de continuar.</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button className="btn-secundario" onClick={() => setConfirmarRestablecer(false)}>Cancelar</button>
+            <button className="btn-peligro" onClick={restablecer}>Sí, restablecer</button>
+          </div>
+        </div>
+      )}
 
       <section className="tarjeta text-sm text-gray-400">
         <p>

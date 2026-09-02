@@ -16,6 +16,30 @@
 
 ---
 
+## Registro de trabajo pendiente — 2026-09-02 — `Cambio`
+
+### Anulación de recibos, confirmaciones en app, formulario rediseñado y APK 1.0.1
+
+- **Anular recibo:** nueva acción sobre recibos pagados que revierte el abono del
+  alquiler, conserva el documento como comprobante y lo deja `por_pagar`
+  (`anularRecibo` en la store web y modal de confirmación en Recibos).
+- **Confirmaciones en app:** los `window.confirm()` de Clientes, Toldos,
+  Alquileres y Configuración (restablecer/importar) se reemplazan por modales
+  propios, consistentes con el diseño y sin diálogos nativos.
+- **Formulario de alquiler rediseñado:** tarjeta de entrega y ubicación GPS,
+  resumen financiero en tarjeta con desglose Total/Abono/Pendiente y pie de
+  acciones sticky; paridad visual en la APK Android (secciones con etiqueta
+  y divisores).
+- **WhatsApp:** `abrirWhatsApp` ya no usa `alert()` bloqueante y abre con
+  `noopener,noreferrer`.
+- **APK 1.0.1:** `versionCode 2`, `update.json` apuntando a la release v1.0.1
+  y documentación en `android-app/README.md` que verifica que la actualización
+  en sitio no borra datos (Room/DataStore) y los riesgos de cambio de firma.
+- Verificación: typecheck ✓, 56 pruebas node ✓, suite de responsividad 4/4 ✓,
+  build de producción ✓.
+
+---
+
 ## v1.4.21 — 2026-09-02 — `Nuevo`
 
 ### Auditoría de responsividad automatizada como pruebas de CI
