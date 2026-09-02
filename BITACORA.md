@@ -16,6 +16,29 @@
 
 ---
 
+## v1.0.2 — 2026-09-02 — `Nuevo`
+
+### APK release 1.0.2 (versionCode 3) para el autoupdate
+
+- Se compiló `app-release.apk` (versionCode 3, versionName 1.0.2) con Gradle 9.3.1
+  y JDK 17, incluyendo todas las mejoras de responsividad, la anulación de recibos,
+  las confirmaciones en app y el formulario rediseñado.
+- La release se firma con el `debug.keystore` de este equipo (misma firma que las
+  versiones instaladas), de modo que la instalación es una actualización en sitio
+  que conserva Room, DataStore y todos los datos, según la verificación documentada
+  en `android-app/README.md`. `isMinifyEnabled` se mantiene en false.
+- Verificación de la APK: `aapt` confirma `com.elspot.toldos` 1.0.2 (3), etiqueta
+  EL SPOT TOLDOS; `apksigner verify` confirma firma válida (SHA-256 de certificado
+  a6fd6451…); SHA-256 del archivo: 70a619dc986446c8f0da9ffce7df030bfdd8dd351e3591790a99a405f5e367da;
+  tamaño 13.112.946 bytes.
+- `testDebugUnitTest` correcto: 17 pruebas (2+3+7+5) sin fallos.
+- `update.json` actualizado a la versión 3 / 1.0.2 con URL y SHA-256 de la release;
+  requiere publicar el tag `v1.0.2` en GitHub Releases con el asset
+  `el-spot-toldos-1.0.2.apk` para que el autoupdate encuentre el archivo.
+- No se ejecutaron pruebas instrumentadas (sin dispositivo/emulador conectado).
+
+---
+
 ## Registro de trabajo pendiente — 2026-09-02 — `Cambio`
 
 ### Anulación de recibos, confirmaciones en app, formulario rediseñado y APK 1.0.1
