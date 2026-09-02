@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+import type { jsPDF } from 'jspdf';
 import type { DatosRecibo } from '../types/modelos';
 import { tarifaEfectiva } from './calculos';
 import { formatearBsEquivalente, formatearFechaCorta, formatearMonto } from './formato';
@@ -6,6 +6,18 @@ import { enlaceMapa, formatearCoordenadas } from './geolocalizacion';
 import { nombreArchivoSeguro } from './venezuela';
 
 /** Generación del recibo digital en PDF A4 para EL SPOT. */
+
+/**
+ * jsPDF (con html2canvas y dompurify, ~374 kB) se carga bajo demanda: la PWA no
+ * lo descarga al arrancar, solo al generar o ver el primer recibo. El módulo se
+ * cachea para no repetir la carga en recibos sucesivos.
+ */
+let moduloJsPdf: Promise<typeof import('jspdf')> | null = null;
+
+function cargarJsPdf(): Promise<typeof import('jspdf')> {
+  moduloJsPdf ??= import('jspdf');
+  return moduloJsPdf;
+}
 
 const MARGEN = 15;
 const ANCHO_PAGINA = 210;
@@ -115,6 +127,7 @@ function montoFila(doc: jsPDF, etiqueta: string, valor: string, x: number, y: nu
 
 /** Genera el PDF del recibo a partir de los datos congelados. */
 export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
+  const { jsPDF } = await cargarJsPdf();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const moneda = datos.negocio.moneda;
   doc.setFillColor(...COLOR_PAGINA);
