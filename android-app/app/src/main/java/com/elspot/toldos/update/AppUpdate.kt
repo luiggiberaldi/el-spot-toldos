@@ -60,7 +60,12 @@ object UpdateManifest {
 }
 
 class GithubUpdateClient(
-    private val manifestUrl: String = UpdateManifest.URL
+    private val manifestUrl: String = UpdateManifest.URL,
+    // Punto de extensión para pruebas unitarias: en producción abre una conexión
+    // HTTPS real; en los tests se inyecta una conexión falsa sin red.
+    private val abrirConexion: (String) -> HttpURLConnection = { url ->
+        URL(url).openConnection() as HttpURLConnection
+    }
 ) {
     fun check(): UpdateCheckResult {
         return runCatching {
@@ -74,7 +79,7 @@ class GithubUpdateClient(
 
     fun download(update: AppUpdate, target: java.io.File): java.io.File {
         require(URL(update.apkUrl).protocol.equals("https", ignoreCase = true)) { "URL de descarga no segura." }
-        val connection = (URL(update.apkUrl).openConnection() as HttpURLConnection).apply {
+        val connection = abrirConexion(update.apkUrl).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MS
             readTimeout = DOWNLOAD_TIMEOUT_MS
@@ -113,7 +118,7 @@ class GithubUpdateClient(
 
     private fun requestText(url: String): String {
         require(url.startsWith("https://")) { "El manifiesto debe usar HTTPS." }
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+        val connection = abrirConexion(url).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS

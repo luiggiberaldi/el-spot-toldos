@@ -16,6 +16,30 @@
 
 ---
 
+## Auditoría autoupdate — 2026-09-02 — `Nuevo`
+
+### Verificación de fallos elegantes: 404 del manifiesto y SHA-256 incorrecto
+
+- Se verificó el manejo de los dos escenarios de falla del autoupdate: **manifiesto
+  inaccesible o corrupto** (404/500, HTML, JSON truncado) termina en
+  `UpdateCheckResult.Failed` con diagnóstico del código HTTP, sin crash ni versiones
+  aceptadas de datos corruptos; **descarga con SHA-256 distinto al del manifiesto**
+  elimina el archivo parcial y propaga un error claro — nunca se notifica la
+  instalación de un binario no verificado.
+- Verificación empírica contra GitHub real (sonda ejecutada una vez): un manifiesto
+  inexistente produce `Failed` con mensaje "El manifiesto respondió 404." y el
+  manifiesto de producción se parsea correctamente (`UpToDate`).
+- Nuevas pruebas deterministas sin red (`AppUpdateFailureTest`, 8 casos) usando una
+  conexión HTTP falsa inyectada por el nuevo punto de extensión de
+  `GithubUpdateClient` (parámetro `abrirConexion`; en producción el comportamiento
+  es idéntico). Sonda de red real `AppUpdateLiveProbe` marcada `@Ignore` para
+  ejecución manual.
+- Cobertura previa: `check()` ya envolvía todo en `runCatching` y `download()` ya
+  borraba el archivo parcial en `catch`; el trabajador devuelve `Result.success()`
+  en fallos (WorkManager no reintentar en bucle) y notifica solo en chequeos
+  manuales. El hallazgo es que faltaba cobertura, no corrección.
+- Suite completa: 17 pruebas ejecutadas (25 declaradas, 2 sonda omitidas), 0 fallos.
+
 ## CI — 2026-09-02 — `Nuevo`
 
 ### Release automática de la APK por GitHub Actions
