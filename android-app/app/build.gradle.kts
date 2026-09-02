@@ -26,11 +26,15 @@ android {
         create("release") {
             // Firma estable de este equipo (la misma del debug): permite la
             // actualización en sitio sin borrar datos, según android-app/README.md.
+            // En CI (GitHub Actions) el keystore llega decodificado al mismo
+            // ~/.android/debug.keystore vía el secret RELEASE_KEYSTORE_BASE64 y
+            // las credenciales pueden sobrescribirse por entorno; en local no
+            // cambia nada respecto del comportamiento anterior.
             val keystore = file(System.getProperty("user.home") + "/.android/debug.keystore")
             storeFile = keystore
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "android"
         }
     }
 

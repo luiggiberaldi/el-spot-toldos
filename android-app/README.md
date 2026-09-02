@@ -97,6 +97,27 @@ Comprobación manual en un dispositivo (APK sobre APK):
 
 **Importante (firma y debug):** una APK `debug` se firma con `~/.android/debug.keystore`, que es estable en una misma máquina; por eso la actualización **debug→debug** conserva datos. En cambio, **cambiar a una keystore distinta (p. ej. publicar una `release` firmada con otra llave) provoca que Android fuerce el desinstalado y borre los datos**, o rechace la instalación (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). Para migrar de debug a una release de producción con datos reales: exportar el respaldo en la APK actual, desinstalar, instalar la release firmada y restaurar el respaldo. Toda release posterior debe usar la misma keystore de producción.
 
+## Release automática (CI)
+
+`.github/workflows/android-release.yml` compila y publica la APK release automáticamente: **se dispara cuando un push a `main` modifica `android-app/app/build.gradle.kts`** (es decir, cuando sube el `versionCode`/`versionName`) y también admite ejecución manual (`workflow_dispatch`).
+
+Comportamiento:
+
+- **Puerta de versión**: `scripts/version_utils.mjs debe-publicar` compara el `versionName` del build contra el tag `vX.Y.Z` más alto publicado; solo continúa si es mayor. Pushes que tocan el build sin subir versión (o commits anteriores ya publicados) terminan en "omitir" sin error.
+- **Compilación reproducible**: usa el **Gradle wrapper** (`android-app/gradlew`, Gradle 9.3.1, JDK 17), así el CI y las máquinas locales compilan con la misma versión exacta.
+- **Firma**: el CI decodifica el secret `RELEASE_KEYSTORE_BASE64` (keystore completa en Base64) a `~/.android/debug.keystore` y compila con el mismo certificado que la app instalada — **la actualización en sitio conserva los datos**. `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` y `RELEASE_KEY_PASSWORD` son opcionales y por defecto usan `android` / `androiddebugkey` / `android` (el keystore de depuración de este equipo).
+- **Verificación**: el flujo corre `assembleRelease` + `testDebugUnitTest`, valida la firma con `apksigner verify`, sube la APK como artefacto (30 días) y publica la GitHub Release `v<versión>` con el asset `el-spot-toldos-<versión>.apk`.
+- **`update.json` no se toca en CI**: se actualiza a mano en el mismo commit donde se sube el `versionCode`, con el SHA-256 real del artefacto (el CI lo imprime en el paso de verificación; el primer run puede usarse de referencia).
+
+Configuración única del secret (una sola vez, con la cuenta propietaria):
+
+```bash
+base64 -w0 ~/.android/debug.keystore | gh secret set RELEASE_KEYSTORE_BASE64 \
+  --repo luiggiberaldi/el-spot-toldos
+```
+
+En Windows (Git Bash) la ruta del keystore es `%USERPROFILE%\.android\debug.keystore`. Sin ese secret, el flujo falla a propósito con instrucciones en el log (nunca publica una APK sin firmar con el certificado correcto).
+
 ## WhatsApp
 
 La APK utiliza Sharesheet y FileProvider para compartir el PDF sin exponer rutas privadas. El usuario confirma el contacto y el envío. El envío automático sin interacción requiere WhatsApp Business Cloud API, backend, autenticación, plantillas y webhooks.

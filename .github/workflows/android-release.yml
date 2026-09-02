@@ -1,0 +1,168 @@
+# Release automática de la APK Android — EL SPOT · Gestor de Toldos.
+#
+# Disparador: un push a `main` que cambie el versionCode/versionName en
+# android-app/app/build.gradle.kts, o ejecución manual. La puerta de versión
+# (scripts/version_utils.mjs) evita releases duplicadas: solo publica si
+# versionName es mayor que la última release publicada en GitHub.
+#
+# Cadena del trabajo:
+#   1. Extraer versión y decidir si corresponde publicar (puerta).
+#   2. Instalar JDK 17 + SDK de Android (cacheado).
+#   3. Decode del keystore desde el secret RELEASE_KEYSTORE_BASE64 (mismo
+#      certificado que la app instalada: la actualización en sitio conserva
+#      los datos; ver android-app/README.md).
+#   4. assembleRelease + testDebugUnitTest con el Gradle wrapper.
+#   5. Verificar firma, copiar la APK como el-spot-toldos-<versión>.apk.
+#   6. Publicar la GitHub Release v<versión> con la APK como asset.
+#
+# Firma: RELEASE_KEYSTORE_BASE64 (obligatorio) contiene el keystore entero en
+# Base64; RELEASE_KEYSTORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD
+# son opcionales y por defecto usan android/androiddebugkey/android (el
+# keystore de depuración actual del equipo).
+#
+# El manifiesto update.json NO se toca aquí: se actualiza a mano en el mismo
+# commit donde se sube el versionCode (así el hash que se anuncia corresponde
+# al artefacto firmado con el keystore del repo).
+
+name: release-android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android-app/app/build.gradle.kts'
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: 'Compilar y verificar aunque no haya versión nueva (NO publica release)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decidir si corresponde publicar
+        id: puerta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORZAR: ${{ inputs.forzar }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node scripts/version_utils.mjs release-name)
+          VEREDICTO=$(node scripts/version_utils.mjs debe-publicar)
+          echo "Build local: ${VERSION} → veredicto: ${VEREDICTO} (forzar: ${FORZAR:-false})"
+          if [ "$VEREDICTO" = "publicar" ]; then
+            TAG=$(node scripts/version_utils.mjs release-tag)
+            echo "publicar=true"      >> "$GITHUB_OUTPUT"
+            echo "crear_release=true" >> "$GITHUB_OUTPUT"
+            echo "tag=${TAG}"         >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          elif [ "${FORZAR:-false}" = "true" ]; then
+            # Ejecución manual de prueba: compila y verifica el pipeline completo
+            # (SDK, keystore, firma, artefacto) pero nunca publica una release
+            # de una versión que ya fue publicada.
+            echo "publicar=true"      >> "$GITHUB_OUTPUT"
+            echo "crear_release=false" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar JDK 17
+        if: steps.puerta.outputs.publicar == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar SDK de Android (con cache)
+        if: steps.puerta.outputs.publicar == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Cache de Gradle
+        if: steps.puerta.outputs.publicar == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android-app/**/*.gradle.kts', 'android-app/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Preparar keystore de firma
+        if: steps.puerta.outputs.publicar == 'true'
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Valores por defecto: el keystore de depuración que este equipo usa
+          # como firma estable (mismo certificado que la app instalada).
+          KSTORE_PASS="${RELEASE_KEYSTORE_PASSWORD:-android}"
+          KALIAS="${RELEASE_KEY_ALIAS:-androiddebugkey}"
+          KKEY_PASS="${RELEASE_KEY_PASSWORD:-android}"
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::Falta el secret RELEASE_KEYSTORE_BASE64 (keystore en Base64)."
+            echo "::error::Generar en local: base64 -w0 ~/.android/debug.keystore | gh secret set RELEASE_KEYSTORE_BASE64 --repo luiggiberaldi/el-spot-toldos"
+            exit 1
+          fi
+          mkdir -p "$HOME/.android"
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
+          echo "keystore_password=${KSTORE_PASS}"  >> "$GITHUB_ENV"
+          echo "keystore_alias=${KALIAS}"          >> "$GITHUB_ENV"
+          echo "keystore_key_password=${KKEY_PASS}" >> "$GITHUB_ENV"
+
+      - name: Compilar release y correr pruebas unitarias
+        if: steps.puerta.outputs.publicar == 'true'
+        working-directory: android-app
+        run: ./gradlew --no-daemon assembleRelease testDebugUnitTest
+
+      - name: Verificar firma y preparar artefacto
+        if: steps.puerta.outputs.publicar == 'true'
+        env:
+          VERSION: ${{ steps.puerta.outputs.version }}
+        run: |
+          set -euo pipefail
+          APK=android-app/app/build/outputs/apk/release/app-release.apk
+          BUILD_TOOLS="$ANDROID_HOME/build-tools"
+          AAPT="$(ls -d "$BUILD_TOOLS"/*/ | sort -V | tail -n 1)aapt"
+          APKSIGNER="$(ls -d "$BUILD_TOOLS"/*/ | sort -V | tail -n 1)apksigner"
+          "$AAPT" dump badging "$APK" | head -n 1
+          "$APKSIGNER" verify --print-certs "$APK"
+          cp "$APK" "el-spot-toldos-${VERSION}.apk"
+          sha256sum "el-spot-toldos-${VERSION}.apk"
+
+      - name: Publicar release v${{ steps.puerta.outputs.version }}
+        if: steps.puerta.outputs.crear_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.puerta.outputs.tag }}
+          VERSION: ${{ steps.puerta.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" "el-spot-toldos-${VERSION}.apk" \
+            --repo luiggiberaldi/el-spot-toldos \
+            --title "EL SPOT TOLDOS v${VERSION}" \
+            --notes "Release v${VERSION} compilada automáticamente por GitHub Actions (versionCode de android-app/app/build.gradle.kts). Verificar el SHA-256 contra update.json antes de instalar."
+
+      - name: Subir artefacto (retención 30 días)
+        if: steps.puerta.outputs.publicar == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: el-spot-toldos-${{ steps.puerta.outputs.version }}
+          path: el-spot-toldos-${{ steps.puerta.outputs.version }}.apk
+          retention-days: 30
+          if-no-files-found: error

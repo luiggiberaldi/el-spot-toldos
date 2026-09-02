@@ -16,6 +16,39 @@
 
 ---
 
+## CI — 2026-09-02 — `Nuevo`
+
+### Release automática de la APK por GitHub Actions
+
+- Nuevo `.github/workflows/android-release.yml`: cuando un push a `main` modifica
+  `android-app/app/build.gradle.kts` (es decir, sube el `versionCode`/`versionName`),
+  el flujo decide si corresponde publicar, compila la APK release firmada, corre las
+  pruebas unitarias (`assembleRelease` + `testDebugUnitTest`), verifica la firma con
+  `apksigner` y publica la GitHub Release `v<versión>` con el asset
+  `el-spot-toldos-<versión>.apk`; también admite ejecución manual.
+- Puerta de versión determinista (`scripts/version_utils.mjs debe-publicar`): compara
+  el `versionName` del build contra el tag `vX.Y.Z` más alto publicado; evita releases
+  duplicadas y termina en "omitir" sin error cuando no hay versión nueva.
+- Se generó el **Gradle wrapper** (`android-app/gradlew`, Gradle 9.3.1), el único
+  componente que faltaba para compilar fuera de esta máquina: CI y máquinas locales
+  usan ahora la misma versión exacta.
+- Firma en CI: el keystore llega decodificado del secret `RELEASE_KEYSTORE_BASE64` a
+  `~/.android/debug.keystore` (mismo certificado que la app instalada, actualización
+  en sitio que conserva datos). El bloque `signingConfigs` admite sobrescribir
+  credenciales por entorno (`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
+  `RELEASE_KEY_PASSWORD`) con los mismos valores por defecto en local.
+  **Pendiente del propietario:** configurar una vez el secret con
+  `base64 -w0 ~/.android/debug.keystore | gh secret set RELEASE_KEYSTORE_BASE64
+  --repo luiggiberaldi/el-spot-toldos`; sin él el flujo falla a propósito con
+  instrucciones en el log (nunca publica una APK sin la firma correcta).
+- `update.json` sigue actualizándose a mano en el commit del bump de versión; el CI
+  imprime el SHA-256 del artefacto verificado en el paso de publicación.
+- Verificación local del cambio: `assembleRelease` con el wrapper y variables de
+  entorno estilo CI regeneró una APK **byte-idéntica** (SHA-256 `70a619dc…367da`,
+  igual al asset v1.0.2 ya publicado) con el mismo certificado; typecheck y las 56
+  pruebas de la PWA siguen en verde.
+- `android-app/README.md` documenta la nueva sección "Release automática (CI)".
+
 ## v1.0.2 — 2026-09-02 — `Nuevo`
 
 ### APK release 1.0.2 (versionCode 3) para el autoupdate
