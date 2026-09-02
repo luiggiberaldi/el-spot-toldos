@@ -16,6 +16,96 @@
 
 ---
 
+## v1.4.21 — 2026-09-02 — `Nuevo`
+
+### Auditoría de responsividad automatizada como pruebas de CI
+
+- Nueva suite `src/responsive.audit.test.tsx`: renderiza la PWA real en Chromium
+  (Edge del sistema vía Vitest browser mode + playwright con `channel: msedge`,
+  sin descargas de navegadores) y hace cumplir tres reglas deterministas:
+  R-OV sin overflow horizontal en las 6 vistas a 320/360/375/768/1280 px,
+  R-TT objetivos táctiles ≥24×24 px (WCAG 2.5.8, con excepción de enlaces inline),
+  y R-IN campos de texto ≥16 px contra el zoom automático de iOS.
+  Incluye el modal "Nuevo alquiler" (formulario más complejo) a 320 y 375 px.
+- Se ejecuta con `npm run test:responsive` (config `vitest.config.responsive.ts`,
+  aislada del `npm test` normal). Al fallar deja captura en `src/__screenshots__/`.
+- La primera ejecución detectó 3 violaciones reales que la auditoría manual había
+  calificado solo como riesgo: botón "Ver todos" del Panel (20 px de alto) y los
+  enlaces-botón "Crear un cliente/toldo aquí" del formulario de alquileres
+  (16-20 px). Corregidos con `min-h-6` (+ padding), conservando el diseño.
+- El detector R-OV distingue el desbordamiento real de la página del scroll
+  intencional de la barra inferior documentado para <380 px (regla R11).
+- Verificación: suite 4/4 en dos ejecuciones consecutivas ✓, typecheck ✓,
+  56 pruebas node ✓, build de producción ✓. No se compiló la APK.
+
+---
+
+## v1.4.20 — 2026-09-02 — `Cambio`
+
+### Carga diferida de jsPDF: −61 % de peso inicial de la PWA (riesgo R-D de la auditoría)
+
+- `src/lib/pdf.ts` ya no importa jsPDF estáticamente: usa `import type` para los tipos y
+  un `import('jspdf')` dinámico cacheado que resuelve solo al generar o ver el primer recibo.
+- El paquete inicial baja de 610 kB (194 kB gzip) a 252 kB (75 kB gzip): jsPDF,
+  html2canvas y dompurify (~118 kB gzip) quedan en un chunk diferido que también
+  precachea el service worker, por lo que los recibos siguen funcionando sin conexión.
+- El módulo se cachea en memoria (`moduloJsPdf`), así que los recibos sucesivos no
+  repiten la carga.
+- Verificado en build de producción servido con `vite preview`: recibo REC-0001
+  generado y mostrado en el visor a través del chunk diferido. Typecheck ✓,
+  56 pruebas ✓. No se compiló la APK.
+
+---
+
+## v1.4.19 — 2026-09-02 — `Cambio`
+
+### Búsquedas memoizadas en Clientes y Alquileres (riesgo R-A de la auditoría)
+
+- El filtrado de la lista de clientes y de alquileres ahora se calcula con `useMemo`
+  (dependencias explícitas), igual que la bitácora: dejar de re-filtrar todo el
+  listado en cada render elimina el costo por pulsación de tecla al escribir en la
+  búsqueda cuando el negocio crezca a cientos de registros.
+- Los resultados verificados en runtime: buscar/borrar actualiza la lista al
+  instante (3 → 1 → 3 clientes; 2 → 1 alquileres filtrando por dirección y estado).
+- Verificación: typecheck ✓, 56 pruebas ✓, build de producción ✓. No se compiló la APK.
+
+---
+
+## v1.4.18 — 2026-09-02 — `Corrección`
+
+### Corrección de los 3 hallazgos de la auditoría de responsividad
+
+- **Inputs a 16 px (F1):** `.input` pasa de `text-sm` a `text-base` en `src/index.css`,
+  eliminando el zoom automático de iOS al enfocar cualquier campo del sistema.
+- **Safe-area iOS (F3):** la navegación inferior añade `pb-[env(safe-area-inset-bottom)]`
+  y `main` compensa con `pb-[calc(6rem+env(safe-area-inset-bottom))]`, de modo que el
+  gesto de inicio del iPhone ya no puede tapar la fila de navegación.
+- **Navegación inferior en pantallas angostas (F2):** los ítems bajan de
+  `min-w-[78px]` a `min-w-[56px]` con `px-0.5`; los 6 ítems caben sin scroll a partir
+  de 336 px y el comportamiento en teléfonos anchos no cambia (los ítems crecen con `flex-1`).
+- Verificación determinista: inputs miden 16 px en runtime, `min-width: 56px`
+  declarado en la nav, `main` resuelve 96 px de colchón inferior, sin overflow
+  horizontal en ninguna vista y con el footer sticky del formulario de alquileres visible.
+- Typecheck ✓, 56 pruebas ✓, build de producción ✓. No se compiló la APK.
+
+---
+
+## Auditoría — 2026-09-02 — `Auditoría`
+
+### Auditoría determinista de responsividad (solo documentación, sin cambios de código)
+
+- Auditoría en dos pasadas sobre la PWA: revisión estática de 13 reglas (breakpoints, overflow,
+  truncado, modales, teclado numérico, tablas, off-canvas) y sweep runtime de las 6 vistas y
+  modales a 485×868 px con datos sembrados (restaurados al terminar).
+- Resultado: 7,5/10 — sin overflow horizontal medido en ninguna vista; 3 hallazgos de pulido
+  móvil (inputs a 14 px → zoom iOS, bottom-nav con scroll a <380 px, sin safe-area iOS) y
+  5 riesgos latentes (filtros sin memo, listas sin virtualización, bundle de 194 kB gzip,
+  fila 12-col del formulario en pantallas pequeñas).
+- Informe completo con matriz, mediciones y orden de corrección: `docs/AUDITORIA_RESPONSIVIDAD.md`.
+- Verificación: typecheck ✓, 56 pruebas ✓, build de producción ✓. No se compiló la APK.
+
+---
+
 ## v1.4.17 — 2026-08-26 — `Cambio`
 
 ### Logo exclusivo y colores claros en PDF
