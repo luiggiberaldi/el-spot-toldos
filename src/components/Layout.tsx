@@ -73,16 +73,16 @@ export function Layout({ vista, alCambiarVista, children }: LayoutProps) {
             className="h-16 w-full max-w-[150px] object-contain object-center"
           />
         </header>
-        <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</main>
+        <main className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">{children}</main>
       </div>
 
-      {/* Navegación inferior (móvil) */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-800 bg-slate-950/95 shadow-[0_-4px_16px_rgba(0,0,0,0.4)] backdrop-blur md:hidden">
+      {/* Navegación inferior (móvil). El safe-area-inset evita que el gesto de inicio de iOS tape la fila. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto pb-[env(safe-area-inset-bottom)] border-t border-slate-800 bg-slate-950/95 shadow-[0_-4px_16px_rgba(0,0,0,0.4)] backdrop-blur md:hidden">
         {NAVEGACION.map((item) => (
           <button
             key={item.vista}
             onClick={() => alCambiarVista(item.vista)}
-            className={`min-w-[78px] flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition ${
+            className={`min-w-[56px] px-0.5 flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition ${
               vista === item.vista ? 'text-marca-400' : 'text-gray-500 hover:text-gray-300'
             }`}
           >

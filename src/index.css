@@ -33,8 +33,9 @@
   .btn-icono {
     @apply btn h-9 w-9 !px-0 !py-0 rounded-lg border border-slate-700/70 bg-slate-800/80 text-gray-400 shadow-sm hover:border-marca-500/40 hover:bg-slate-700/70 hover:text-marca-300;
   }
+  /* text-base (16 px) evita el zoom automático de iOS al enfocar (umbral: 16 px). */
   .input {
-    @apply w-full rounded-xl border border-slate-700/70 bg-slate-900 px-3 py-2 text-sm text-gray-100 shadow-sm transition placeholder:text-gray-500 focus:border-marca-400 focus:outline-none focus:ring-2 focus:ring-marca-500/25;
+    @apply w-full rounded-xl border border-slate-700/70 bg-slate-900 px-3 py-2 text-base text-gray-100 shadow-sm transition placeholder:text-gray-500 focus:border-marca-400 focus:outline-none focus:ring-2 focus:ring-marca-500/25;
   }
   /* El teclado numérico móvil se conserva, pero los spinners nativos no forman parte de la UI. */
   .input[type='number'] {
