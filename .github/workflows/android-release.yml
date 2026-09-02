@@ -14,15 +14,15 @@
 #   4. assembleRelease + testDebugUnitTest con el Gradle wrapper.
 #   5. Verificar firma, copiar la APK como el-spot-toldos-<versión>.apk.
 #   6. Publicar la GitHub Release v<versión> con la APK como asset.
+#   7. Actualizar update.json en main con el SHA-256 del asset publicado
+#      (el empaquetado APK no es byte-reproducible entre entornos: el hash
+#      válido para el autoupdate solo se conoce tras publicar el artefacto
+#      de este run).
 #
 # Firma: RELEASE_KEYSTORE_BASE64 (obligatorio) contiene el keystore entero en
 # Base64; RELEASE_KEYSTORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD
 # son opcionales y por defecto usan android/androiddebugkey/android (el
 # keystore de depuración actual del equipo).
-#
-# El manifiesto update.json NO se toca aquí: se actualiza a mano en el mismo
-# commit donde se sube el versionCode (así el hash que se anuncia corresponde
-# al artefacto firmado con el keystore del repo).
 
 name: release-android
 
@@ -157,6 +157,34 @@ jobs:
             --repo luiggiberaldi/el-spot-toldos \
             --title "EL SPOT TOLDOS v${VERSION}" \
             --notes "Release v${VERSION} compilada automáticamente por GitHub Actions (versionCode de android-app/app/build.gradle.kts). Verificar el SHA-256 contra update.json antes de instalar."
+
+      - name: Actualizar update.json con el hash del asset publicado
+        if: steps.puerta.outputs.crear_release == 'true'
+        env:
+          TAG: ${{ steps.puerta.outputs.tag }}
+          VERSION: ${{ steps.puerta.outputs.version }}
+        run: |
+          set -euo pipefail
+          # El empaquetado APK no es byte-reproducible entre entornos: el SHA-256
+          # válido para el autoupdate es el del asset que el CI acaba de publicar,
+          # nunca el de un build local. El manifiesto se corrige aquí, tras la
+          # publicación, con el hash real.
+          SHA=$(sha256sum "el-spot-toldos-${VERSION}.apk" | awk '{print $1}')
+          CODE=$(node scripts/version_utils.mjs | jq -r .versionCode)
+          URL="https://github.com/luiggiberaldi/el-spot-toldos/releases/download/${TAG}/el-spot-toldos-${VERSION}.apk"
+          jq --arg sha "$SHA" --arg ver "$VERSION" --arg url "$URL" --argjson code "$CODE" \
+            '.versionCode = $code | .versionName = $ver | .apkUrl = $url | .sha256 = $sha' \
+            update.json > update.json.tmp && mv update.json.tmp update.json
+          if git diff --quiet update.json; then
+            echo "update.json ya coincide con la release publicada"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add update.json
+            git commit -m "ci: manifiesto del autoupdate para ${TAG} (SHA-256 del asset publicado)"
+            git push origin HEAD:main
+            echo "update.json actualizado con SHA-256 ${SHA}"
+          fi
 
       - name: Subir artefacto (retención 30 días)
         if: steps.puerta.outputs.publicar == 'true'

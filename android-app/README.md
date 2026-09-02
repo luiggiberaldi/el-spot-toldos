@@ -78,7 +78,7 @@ El autoupdate integrado usa GitHub Releases:
 1. Incrementar `versionCode` y `versionName` en `android-app/app/build.gradle.kts`.
 2. Generar una APK release firmada con la misma keystore de producción.
 3. Crear una GitHub Release con tag semántico, por ejemplo `v1.1.0`, y subir el archivo APK.
-4. Actualizar `update.json` en la rama `main` con `versionCode`, `versionName`, URL HTTPS del asset, SHA-256, notas y si la actualización es obligatoria.
+4. Actualizar `update.json` en la rama `main` con `versionCode`, `versionName`, URL HTTPS del asset, SHA-256, notas y si la actualización es obligatoria (ahora lo hace el CI automáticamente tras publicar — ver "Release automática (CI)" abajo; las notas de la versión se redactan en el commit del bump).
 5. La APK consulta el manifiesto, compara `versionCode`, descarga y verifica la APK, y muestra una notificación.
 6. El usuario confirma la instalación en el instalador de Android.
 
@@ -107,7 +107,7 @@ Comportamiento:
 - **Compilación reproducible**: usa el **Gradle wrapper** (`android-app/gradlew`, Gradle 9.3.1, JDK 17), así el CI y las máquinas locales compilan con la misma versión exacta.
 - **Firma**: el CI decodifica el secret `RELEASE_KEYSTORE_BASE64` (keystore completa en Base64) a `~/.android/debug.keystore` y compila con el mismo certificado que la app instalada — **la actualización en sitio conserva los datos**. `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` y `RELEASE_KEY_PASSWORD` son opcionales y por defecto usan `android` / `androiddebugkey` / `android` (el keystore de depuración de este equipo).
 - **Verificación**: el flujo corre `assembleRelease` + `testDebugUnitTest`, valida la firma con `apksigner verify`, sube la APK como artefacto (30 días) y publica la GitHub Release `v<versión>` con el asset `el-spot-toldos-<versión>.apk`.
-- **`update.json` no se toca en CI**: se actualiza a mano en el mismo commit donde se sube el `versionCode`, con el SHA-256 real del artefacto (el CI lo imprime en el paso de verificación; el primer run puede usarse de referencia).
+- **`update.json` lo actualiza el CI**: tras publicar, el flujo reescribe `versionCode`, `versionName`, `apkUrl` y `sha256` del manifiesto con el hash **del asset que acaba de publicar** y lo sube a `main` como `github-actions[bot]`. Conserva `notes` y `mandatory` tal como estén en el commit del bump — solo hay que redactar las notas de la versión ahí. (El empaquetado APK no es byte-reproducible entre entornos, así que el hash válido para el autoupdate solo se conoce después de publicar; nunca se anuncia el hash de un build local.)
 
 Configuración única del secret (una sola vez, con la cuenta propietaria):
 

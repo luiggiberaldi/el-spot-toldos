@@ -41,8 +41,19 @@
   `base64 -w0 ~/.android/debug.keystore | gh secret set RELEASE_KEYSTORE_BASE64
   --repo luiggiberaldi/el-spot-toldos`; sin él el flujo falla a propósito con
   instrucciones en el log (nunca publica una APK sin la firma correcta).
-- `update.json` sigue actualizándose a mano en el commit del bump de versión; el CI
-  imprime el SHA-256 del artefacto verificado en el paso de publicación.
+- `update.json` lo actualiza el propio CI tras publicar (commit firmado como
+  `github-actions[bot]`), con el SHA-256 **del asset publicado**: el empaquetado APK
+  no es byte-reproducible entre entornos (para el mismo versionName, el build local
+  dio `70a619dc…` y el del CI `3c90ebb1…`), así que el hash válido para el autoupdate
+  solo se conoce después de publicar. El commit del bump solo redacta las notas;
+  el CI preserva `notes` y `mandatory`.
+- Validación real en GitHub Actions: el run del push verificó la puerta en un runner
+  (`1.0.2 → omitir`, success); una ejecución manual con `forzar` compiló, firmó y
+  verificó la APK completa en el runner (mismo certificado `a6fd6451…`, por lo que la
+  actualización en sitio conserva datos), subió el artefacto y no publicó nada. Un
+  primer intento falló porque el wrapper quedó sin bit ejecutable al generarse en
+  Windows (`./gradlew: Permission denied`); corregido con `git update-index
+  --chmod=+x` (commit `b594813`).
 - Verificación local del cambio: `assembleRelease` con el wrapper y variables de
   entorno estilo CI regeneró una APK **byte-idéntica** (SHA-256 `70a619dc…367da`,
   igual al asset v1.0.2 ya publicado) con el mismo certificado; typecheck y las 56
