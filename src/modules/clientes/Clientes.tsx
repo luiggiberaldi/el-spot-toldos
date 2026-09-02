@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '../../data/store';
 import { generarId } from '../../lib/ids';
 import { formatearCedulaVenezolana, formatearTelefonoVenezolano } from '../../lib/venezuela';
@@ -105,11 +105,15 @@ export function Clientes() {
     }
   };
 
-  const filtrados = clientes.filter((c) =>
-    `${c.nombre} ${c.cedula} ${c.telefono}`
-      .toLowerCase()
-      .includes(busqueda.toLowerCase())
-  );
+  // Memoizado: evita re-filtrar todo el listado en cada render (patrón de Bitacora).
+  const filtrados = useMemo(() => {
+    const termino = busqueda.toLowerCase();
+    return clientes.filter((c) =>
+      `${c.nombre} ${c.cedula} ${c.telefono}`
+        .toLowerCase()
+        .includes(termino)
+    );
+  }, [clientes, busqueda]);
 
   return (
     <div className="space-y-4">

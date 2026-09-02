@@ -69,11 +69,16 @@ export function Alquileres({ navegar }: { navegar: (vista: Vista) => void }) {
   const nombreCliente = (id: string) =>
     clientes.find((c) => c.id === id)?.nombre ?? 'Cliente eliminado';
 
-  const filtrados = alquileres.filter((a) => {
-    const coincideEstado = filtroEstado === 'todos' || a.estado === filtroEstado;
-    const texto = `${a.folio} ${nombreCliente(a.clienteId)} ${a.direccion}`.toLowerCase();
-    return coincideEstado && texto.includes(busqueda.toLowerCase());
-  });
+  // Memoizado: evita re-filtrar todo el listado en cada render (patrón de Bitacora).
+  const filtrados = useMemo(() => {
+    const termino = busqueda.toLowerCase();
+    return alquileres.filter((a) => {
+      const coincideEstado = filtroEstado === 'todos' || a.estado === filtroEstado;
+      const texto = `${a.folio} ${nombreCliente(a.clienteId)} ${a.direccion}`.toLowerCase();
+      return coincideEstado && texto.includes(termino);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nombreCliente depende solo de `clientes`
+  }, [alquileres, filtroEstado, busqueda, clientes]);
 
   const abrirNuevo = () => {
     setEditando(null);
