@@ -448,7 +448,7 @@ function FormularioAlquiler({
           <p className="text-xs text-amber-400">
             No hay clientes registrados.{' '}
             <button
-              className="font-medium underline"
+              className="inline-block min-h-6 py-1 align-baseline font-medium underline"
               onClick={() => {
                 alCerrar();
                 navegar('clientes');
@@ -519,7 +519,7 @@ function FormularioAlquiler({
             <p className="mt-2 text-xs text-amber-400">
               No hay toldos en el inventario.{' '}
               <button
-                className="font-medium underline"
+                className="inline-block min-h-6 py-1 align-baseline font-medium underline"
                 onClick={() => {
                   alCerrar();
                   navegar('toldos');

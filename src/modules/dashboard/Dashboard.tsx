@@ -168,7 +168,7 @@ export function Dashboard({ navegar }: { navegar: (vista: Vista) => void }) {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-semibold text-white">Alquileres recientes</h2>
           <button
-            className="inline-flex items-center gap-1 text-sm font-medium text-marca-400 hover:text-marca-300"
+            className="inline-flex min-h-6 items-center gap-1 py-1 text-sm font-medium text-marca-400 hover:text-marca-300"
             onClick={() => navegar('alquileres')}
           >
             Ver todos
