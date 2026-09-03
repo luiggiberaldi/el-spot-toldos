@@ -185,58 +185,145 @@ fun <T> ChoiceField(
     options: List<Pair<T, String>>,
     onSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
-    supportingText: String? = null
+    supportingText: String? = null,
+    emptyMessage: String = "Sin opciones disponibles",
+    emptyHint: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val isEmpty = options.isEmpty()
+    val selectedText = options.firstOrNull { it.first == selected }?.second
+
     Box(modifier = modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            contentPadding = ButtonDefaults.ContentPadding
+            contentPadding = ButtonDefaults.ContentPadding,
+            border = if (isEmpty && selectedText == null) {
+                androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
+                )
+            } else ButtonDefaults.outlinedButtonBorder(enabled = true)
         ) {
             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    options.firstOrNull { it.first == selected }?.second ?: "Selecciona",
+                    text = selectedText ?: if (isEmpty) emptyMessage else "Selecciona",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (selectedText != null) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else if (isEmpty) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
-            Icon(Icons.Default.ExpandMore, contentDescription = "Abrir opciones")
+            Icon(
+                if (isEmpty && selectedText == null) Icons.Default.Info else Icons.Default.ExpandMore,
+                contentDescription = if (isEmpty) "Sin opciones disponibles" else "Abrir opciones",
+                tint = if (isEmpty && selectedText == null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.92f)
                 .shadow(12.dp, RoundedCornerShape(14.dp))
                 .clip(RoundedCornerShape(14.dp))
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
         ) {
-            options.forEach { (value, text) ->
+            if (isEmpty) {
                 DropdownMenuItem(
-                    text = { Text(text) },
-                    leadingIcon = if (value == selected) {
-                        { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-                    } else null,
-                    onClick = {
-                        onSelected(value)
-                        expanded = false
-                    }
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp, horizontal = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Text(
+                                emptyMessage,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            if (!emptyHint.isNullOrBlank()) {
+                                Text(
+                                    emptyHint,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                            Text(
+                                "Toca para cerrar",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    },
+                    onClick = { expanded = false }
                 )
+            } else {
+                options.forEach { (value, text) ->
+                    DropdownMenuItem(
+                        text = { Text(text) },
+                        leadingIcon = if (value == selected) {
+                            { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        } else null,
+                        onClick = {
+                            onSelected(value)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
-    if (!supportingText.isNullOrBlank()) {
-        Text(
-            supportingText,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val displaySupportingText = supportingText ?: if (isEmpty && selectedText == null) emptyHint else null
+    if (!displaySupportingText.isNullOrBlank()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.padding(start = 4.dp, top = 3.dp)
-        )
+        ) {
+            if (isEmpty && selectedText == null) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+            Text(
+                displaySupportingText,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isEmpty && selectedText == null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

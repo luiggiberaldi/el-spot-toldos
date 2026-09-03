@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Info } from 'lucide-react';
 
 /**
  * Select de diseño personalizado.
@@ -20,6 +20,8 @@ interface SelectPersonalizadoProps<T extends string> {
   opciones: Array<Opcion<T>>;
   obligatorio?: boolean;
   placeholder?: string;
+  mensajeVacio?: string;
+  pistaVacio?: string;
 }
 
 export function SelectPersonalizado<T extends string>({
@@ -28,7 +30,9 @@ export function SelectPersonalizado<T extends string>({
   alCambiar,
   opciones,
   obligatorio,
-  placeholder = 'Selecciona una opción'
+  placeholder = 'Selecciona una opción',
+  mensajeVacio = 'Sin opciones disponibles',
+  pistaVacio
 }: SelectPersonalizadoProps<T>) {
   const [abierto, setAbierto] = useState(false);
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -91,24 +95,40 @@ export function SelectPersonalizado<T extends string>({
             role="listbox"
             className="anim-dropdown absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-700 bg-slate-900 py-1 shadow-xl shadow-black/50"
           >
-            {opciones.map((opcion) => {
-              const activa = opcion.valor === valor;
-              return (
-                <li key={opcion.valor} role="option" aria-selected={activa}>
-                  <button
-                    type="button"
-                    onClick={() => elegir(opcion.valor)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${
-                      activa ? 'bg-sky-500/15 text-sky-300' : 'text-gray-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {opcion.Icono && <opcion.Icono className="h-4 w-4 shrink-0 text-gray-500" />}
-                    <span className="flex-1 truncate text-left">{opcion.etiqueta}</span>
-                    {activa && <Check className="h-4 w-4 shrink-0 text-marca-300" />}
-                  </button>
-                </li>
-              );
-            })}
+            {opciones.length === 0 ? (
+              <li className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 text-center">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/80 text-amber-400">
+                  <Info className="h-4 w-4" />
+                </span>
+                <span className="text-xs font-medium text-gray-300">
+                  {mensajeVacio}
+                </span>
+                {pistaVacio && (
+                  <span className="text-[11px] text-gray-400">
+                    {pistaVacio}
+                  </span>
+                )}
+              </li>
+            ) : (
+              opciones.map((opcion) => {
+                const activa = opcion.valor === valor;
+                return (
+                  <li key={opcion.valor} role="option" aria-selected={activa}>
+                    <button
+                      type="button"
+                      onClick={() => elegir(opcion.valor)}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${
+                        activa ? 'bg-sky-500/15 text-sky-300' : 'text-gray-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {opcion.Icono && <opcion.Icono className="h-4 w-4 shrink-0 text-gray-500" />}
+                      <span className="flex-1 truncate text-left">{opcion.etiqueta}</span>
+                      {activa && <Check className="h-4 w-4 shrink-0 text-marca-300" />}
+                    </button>
+                  </li>
+                );
+              })
+            )}
           </ul>
         )}
       </div>

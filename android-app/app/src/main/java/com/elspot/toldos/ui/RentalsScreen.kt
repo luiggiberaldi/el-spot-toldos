@@ -217,7 +217,16 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
         title = { Text(if (initial == null) "Nuevo alquiler" else "Editar ${initial.folio}") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { ChoiceField("Cliente", clientId, state.clients.map { it.id to it.nombre }, { clientId = it }) }
+                item {
+                    ChoiceField(
+                        label = "Cliente",
+                        selected = clientId,
+                        options = state.clients.map { it.id to it.nombre },
+                        onSelected = { clientId = it },
+                        emptyMessage = "Sin clientes registrados",
+                        emptyHint = "Primero agrega clientes desde la sección Clientes."
+                    )
+                }
                 item { FormLabel("Toldos") }
                 items(lines.size, key = { it }) { index -> RentalLineEditor(index, lines[index], state, mode, initial?.id, status == RentalStatus.ACTIVE || status == RentalStatus.DELIVERED, { lines[index] = it }, { if (lines.size > 1) lines.removeAt(index) }) }
                 item { TextButton(onClick = { lines.add(RentalLineState()) }) { Icon(Icons.Default.Add, null); Spacer(Modifier.size(5.dp)); Text("Agregar toldo") } }
@@ -270,8 +279,37 @@ private fun availableUnitsForTent(state: AppUiState, tentId: String, exceptRenta
 private fun RentalLineEditor(index: Int, line: RentalLineState, state: AppUiState, mode: RentalMode, currentRentalId: String?, allowInventory: Boolean, onChange: (RentalLineState) -> Unit, onRemove: () -> Unit) {
     val options = state.tents.filter { TentStatus.from(it.estado) != TentStatus.RETIRED }.filter { !allowInventory || TentStatus.from(it.estado) != TentStatus.REPAIR }.filter { !allowInventory || it.id == line.tentId || availableUnitsForTent(state, it.id, currentRentalId) > 0 }.map { tent -> tent.id to "${tent.nombre} (${tent.tamano.ifBlank { "sin tamaño" }} · ${availableUnitsForTent(state, tent.id, currentRentalId)}/${tent.unidades} disp.)" }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        ChoiceField("Toldo ${index + 1}", line.tentId, options, { id -> val tent = state.tents.firstOrNull { it.id == id }; val price = if (mode == RentalMode.H12) tent?.tarifa12hCents ?: tent?.tarifaCents?.div(2) else tent?.tarifaCents; onChange(line.copy(tentId = id, tariff = price?.let { "%.2f".format(it / 100.0) } ?: line.tariff)) })
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) { OutlinedTextField(line.quantity, { onChange(line.copy(quantity = it)) }, label = { Text("Cantidad") }, singleLine = true, modifier = Modifier.weight(0.7f)); OutlinedTextField(line.tariff, { onChange(line.copy(tariff = it)) }, label = { Text(if (mode == RentalMode.H12) "Precio 12h ($)" else "Precio 24h ($)") }, singleLine = true, modifier = Modifier.weight(1.3f)); IconButton(onClick = onRemove) { Icon(Icons.Default.Delete, "Quitar toldo", tint = MaterialTheme.colorScheme.error) } }
+        ChoiceField(
+            label = "Toldo ${index + 1}",
+            selected = line.tentId,
+            options = options,
+            onSelected = { id ->
+                val tent = state.tents.firstOrNull { it.id == id }
+                val price = if (mode == RentalMode.H12) tent?.tarifa12hCents ?: tent?.tarifaCents?.div(2) else tent?.tarifaCents
+                onChange(line.copy(tentId = id, tariff = price?.let { "%.2f".format(it / 100.0) } ?: line.tariff))
+            },
+            emptyMessage = "Sin toldos disponibles",
+            emptyHint = if (state.tents.isEmpty()) "Registra toldos en la sección Toldos." else "No hay toldos con inventario disponible."
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = line.quantity,
+                onValueChange = { onChange(line.copy(quantity = it)) },
+                label = { Text("Cant.", maxLines = 1) },
+                singleLine = true,
+                modifier = Modifier.weight(0.85f)
+            )
+            OutlinedTextField(
+                value = line.tariff,
+                onValueChange = { onChange(line.copy(tariff = it)) },
+                label = { Text(if (mode == RentalMode.H12) "Precio 12h ($)" else "Precio 24h ($)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                singleLine = true,
+                modifier = Modifier.weight(1.15f)
+            )
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Default.Delete, "Quitar toldo", tint = MaterialTheme.colorScheme.error)
+            }
+        }
     }
 }
 
