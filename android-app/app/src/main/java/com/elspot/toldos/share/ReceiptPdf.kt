@@ -14,7 +14,6 @@ import androidx.core.content.FileProvider
 import com.elspot.toldos.data.ReceiptSnapshot
 import com.elspot.toldos.domain.centsToBolivarText
 import com.elspot.toldos.domain.centsToDollarText
-import com.elspot.toldos.domain.effectiveTariffCents
 import com.elspot.toldos.domain.exchangeRateText
 import com.elspot.toldos.domain.formatDateTime
 import com.elspot.toldos.domain.safeFilePart
@@ -83,7 +82,7 @@ class ReceiptPdfService(private val context: Context) {
             }
             drawText(canvas, paint, itemLabel.take(45), margin + 12f, y + 20f, 10f, text, false)
             drawText(canvas, paint, item.quantity.toString(), pageWidth - 190f, y + 20f, 10f, text, false, true)
-            val tariff = effectiveTariffCents(item.tariffCents, snapshot.mode)
+            val tariff = item.tariffCents
             drawText(canvas, paint, centsToDollarText(tariff), pageWidth - 112f, y + 20f, 10f, text, false, true)
             drawText(canvas, paint, centsToDollarText(tariff * item.quantity), pageWidth - margin - 10f, y + 20f, 10f, text, false, true)
             y += rowHeight
@@ -92,7 +91,7 @@ class ReceiptPdfService(private val context: Context) {
         paint.strokeWidth = 1f
         canvas.drawLine(margin, y, pageWidth - margin, y, paint)
         if (snapshot.mode.hours == 12) {
-            drawText(canvas, paint, "Modalidad de 12 horas: tarifa equivalente al 50% de la tarifa base.", margin, y + 17f, 8.5f, muted)
+            drawText(canvas, paint, "Modalidad: 12 horas.", margin, y + 17f, 8.5f, muted)
             y += 31f
         } else {
             y += 16f

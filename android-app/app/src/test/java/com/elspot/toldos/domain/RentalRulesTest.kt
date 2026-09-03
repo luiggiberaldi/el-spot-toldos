@@ -43,9 +43,9 @@ class RentalRulesTest {
     )
 
     @Test
-    fun twelveHoursUsesHalfOfTheTwentyFourHourTariff() {
+    fun calculateRentalTotalSumsAllItemLines() {
         assertEquals(20_000L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 2, 10_000L)), RentalMode.H24))
-        assertEquals(5_000L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 1, 10_000L)), RentalMode.H12))
+        assertEquals(7_500L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 1, 7_500L)), RentalMode.H12))
     }
 
     @Test

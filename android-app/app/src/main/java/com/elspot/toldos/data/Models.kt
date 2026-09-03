@@ -1,6 +1,5 @@
 package com.elspot.toldos.data
 
-import com.elspot.toldos.domain.effectiveTariffCents
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant

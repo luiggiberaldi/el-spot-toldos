@@ -7,14 +7,13 @@ import com.elspot.toldos.data.TentStatus
 import com.elspot.toldos.data.ToldoEntity
 import kotlin.math.roundToLong
 
-/** Tarifa efectiva: la modalidad de 12 horas cobra la mitad de la tarifa base de 24 horas. */
+/** Tarifa efectiva de respaldo cuando no existe tarifa de 12 horas configurada (la mitad de la base de 24h). */
 fun effectiveTariffCents(baseCents: Long, mode: RentalMode): Long =
     if (mode == RentalMode.H12) (baseCents / 2.0).roundToLong() else baseCents
 
-/** Total calculado desde las líneas, sin confiar en un valor enviado por la interfaz. */
-fun calculateRentalTotal(items: List<com.elspot.toldos.data.RentalItemDraft>, mode: RentalMode): Long {
-    val subtotal = items.sumOf { it.tariffCents * it.quantity.toLong() }
-    return effectiveTariffCents(subtotal, mode)
+/** Total calculado desde las líneas del alquiler. Cada línea ya contiene la tarifa unitaria correspondiente a la modalidad seleccionada. */
+fun calculateRentalTotal(items: List<com.elspot.toldos.data.RentalItemDraft>, mode: RentalMode = RentalMode.H24): Long {
+    return items.sumOf { it.tariffCents * it.quantity.toLong() }
 }
 
 /**

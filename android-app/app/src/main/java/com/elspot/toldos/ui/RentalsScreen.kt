@@ -65,7 +65,6 @@ import com.elspot.toldos.data.TentStatus
 import com.elspot.toldos.data.ToldoEntity
 import com.elspot.toldos.domain.calculateReturnAt
 import com.elspot.toldos.domain.centsToDollarText
-import com.elspot.toldos.domain.effectiveTariffCents
 import com.elspot.toldos.domain.formatDateTime
 import com.elspot.toldos.domain.formatDual
 import com.elspot.toldos.domain.parseDollarCents
@@ -211,8 +210,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
         } else locationError = "Permiso de ubicación denegado. Actívalo en los ajustes del dispositivo."
     }
     val totalCents = remember(lines.toList(), mode) {
-        val base = lines.sumOf { (parseDollarCents(it.tariff) ?: 0L) * (it.quantity.toIntOrNull()?.coerceAtLeast(0) ?: 0) }
-        if (mode == RentalMode.H12) Math.round(base / 2.0) else base
+        lines.sumOf { (parseDollarCents(it.tariff) ?: 0L) * (it.quantity.toIntOrNull()?.coerceAtLeast(0) ?: 0) }
     }
     val parsedDeposit = if (deposit.isBlank()) 0L else parseDollarCents(deposit)
     val depositCents = parsedDeposit ?: 0L
@@ -472,7 +470,7 @@ private fun RentalDetailDialog(rental: AlquilerEntity, state: AppUiState, viewMo
         item { GpsSummary(rental.latitud, rental.longitud) }
         item { Divider() }
         item { Text("Toldos", fontWeight = FontWeight.SemiBold) }
-        items(rentalItems, key = { "${it.alquilerId}-${it.linea}" }) { line -> val tent = state.tents.firstOrNull { it.id == line.toldoId }; Text("${line.cantidad} × ${tent?.nombre ?: "Toldo eliminado"} — ${centsToDollarText(effectiveTariffCents(line.tarifaCents, mode) * line.cantidad)}", style = MaterialTheme.typography.bodySmall) }
+        items(rentalItems, key = { "${it.alquilerId}-${it.linea}" }) { line -> val tent = state.tents.firstOrNull { it.id == line.toldoId }; Text("${line.cantidad} × ${tent?.nombre ?: "Toldo eliminado"} — ${centsToDollarText(line.tarifaCents * line.cantidad)}", style = MaterialTheme.typography.bodySmall) }
         item { MoneySummary(rental.montoTotalCents, rental.abonoCents, state.config) }
     } }, dismissButton = { Row { TextButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error); Text("Eliminar") }; TextButton(onClick = onEdit) { Icon(Icons.Default.Edit, null); Text("Editar") } } }, confirmButton = { Button(onClick = onReceipt, enabled = rental.montoTotalCents > 0L) { Icon(Icons.Default.ReceiptLong, null); Spacer(Modifier.size(6.dp)); Text("Emitir recibo") } })
 }
