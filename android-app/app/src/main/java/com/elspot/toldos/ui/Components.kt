@@ -460,9 +460,9 @@ fun DateTimeField(
         shape = RoundedCornerShape(10.dp),
         contentPadding = ButtonDefaults.ContentPadding
     ) {
-        Icon(Icons.Default.CalendarMonth, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Column(horizontalAlignment = Alignment.Start) {
+        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(formatDateTime(value), color = MaterialTheme.colorScheme.onSurface)
         }

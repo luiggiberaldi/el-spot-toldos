@@ -9,11 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -119,9 +127,14 @@ fun ClientsScreen(state: AppUiState, viewModel: AppViewModel) {
 
 @Composable
 private fun ClientRow(client: ClienteEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val context = LocalContext.current
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(client.nombre, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                 val secondary = listOfNotNull(
                     client.cedula.takeIf { it.isNotBlank() },
@@ -130,8 +143,34 @@ private fun ClientRow(client: ClienteEntity, onEdit: () -> Unit, onDelete: () ->
                 if (secondary.isNotBlank()) Text(secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (client.direccion.isNotBlank()) Text(client.direccion, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Editar cliente") }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Eliminar cliente", tint = MaterialTheme.colorScheme.error) }
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                if (client.telefono.isNotBlank()) {
+                    val rawPhone = client.telefono.filter { it.isDigit() }
+                    val waNumber = when {
+                        rawPhone.startsWith("58") -> rawPhone
+                        rawPhone.startsWith("0") -> "58" + rawPhone.drop(1)
+                        else -> "58$rawPhone"
+                    }
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$waNumber")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        runCatching { context.startActivity(intent) }
+                    }) {
+                        Icon(Icons.Default.Chat, contentDescription = "Escribir por WhatsApp", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${client.telefono}")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        runCatching { context.startActivity(intent) }
+                    }) {
+                        Icon(Icons.Default.Phone, contentDescription = "Llamar por teléfono", tint = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Editar cliente") }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Eliminar cliente", tint = MaterialTheme.colorScheme.error) }
+            }
         }
     }
 }
@@ -158,10 +197,34 @@ private fun ClientFormDialog(initial: ClienteEntity?, onDismiss: () -> Unit, onS
         title = { Text(if (initial == null) "Nuevo cliente" else "Editar cliente") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre *") }, singleLine = true)
-                OutlinedTextField(document, { document = it }, label = { Text("Cédula / RIF") }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text("Teléfono") }, singleLine = true)
-                OutlinedTextField(address, { address = it }, label = { Text("Dirección") }, singleLine = true)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre *") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(
+                    value = document,
+                    onValueChange = { document = it },
+                    label = { Text("Cédula / RIF") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Teléfono") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Dirección") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notas") }, minLines = 2)
                 ErrorMessage(error)
             }

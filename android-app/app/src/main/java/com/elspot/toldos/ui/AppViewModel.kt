@@ -32,11 +32,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+sealed interface UpdateUiState {
+    data object Idle : UpdateUiState
+    data object Checking : UpdateUiState
+    data object UpToDate : UpdateUiState
+    data class Available(val update: com.elspot.toldos.update.AppUpdate) : UpdateUiState
+    data class Downloading(val progressText: String) : UpdateUiState
+    data class ReadyToInstall(val apkFile: java.io.File, val versionName: String) : UpdateUiState
+    data class Failed(val message: String) : UpdateUiState
+}
 
 sealed interface AppEvent {
     data class Notice(val text: String) : AppEvent
@@ -54,6 +65,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val operation = MutableStateFlow(OperationState())
     private val _events = MutableSharedFlow<AppEvent>(extraBufferCapacity = 16)
     val events = _events.asSharedFlow()
+    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
+    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
 
     val state: StateFlow<AppUiState> = combine(repository.state, operation) { data, action ->
         data.copy(busy = action.busy, message = action.message, error = action.error)
@@ -178,7 +191,41 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun checkForUpdates() {
-        scheduler.checkForUpdatesNow(manual = true)
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _updateState.value = UpdateUiState.Checking
+            when (val result = com.elspot.toldos.update.GithubUpdateClient().check()) {
+                is com.elspot.toldos.update.UpdateCheckResult.UpToDate -> {
+                    _updateState.value = UpdateUiState.UpToDate
+                    _events.emit(AppEvent.Notice("EL SPOT TOLDOS está actualizado (v${com.elspot.toldos.BuildConfig.VERSION_NAME})"))
+                }
+                is com.elspot.toldos.update.UpdateCheckResult.Available -> {
+                    _updateState.value = UpdateUiState.Available(result.update)
+                }
+                is com.elspot.toldos.update.UpdateCheckResult.Failed -> {
+                    _updateState.value = UpdateUiState.Failed(result.message)
+                    _events.emit(AppEvent.Error(result.message))
+                }
+            }
+        }
+    }
+
+    fun downloadAndInstallUpdate(update: com.elspot.toldos.update.AppUpdate) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _updateState.value = UpdateUiState.Downloading("Descargando v${update.versionName}...")
+            val directory = java.io.File(app.filesDir, "updates").apply { mkdirs() }
+            val target = java.io.File(directory, "el-spot-toldos-${update.versionName}.apk")
+            runCatching {
+                com.elspot.toldos.update.GithubUpdateClient().download(update, target)
+                _updateState.value = UpdateUiState.ReadyToInstall(target, update.versionName)
+            }.onFailure { err ->
+                _updateState.value = UpdateUiState.Failed(err.message ?: "Error al descargar.")
+                _events.emit(AppEvent.Error("No se pudo descargar la actualización: ${err.message}"))
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _updateState.value = UpdateUiState.Idle
     }
 
     fun saveConfig(config: ConfigSnapshot) {

@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -237,16 +240,18 @@ private fun TentFormDialog(
                 ) {
                     OutlinedTextField(
                         value = tariff,
-                        onValueChange = { tariff = it },
+                        onValueChange = { tariff = it.replace(',', '.') },
                         label = { Text("Precio 24h ($) *", maxLines = 1) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = tariff12h,
-                        onValueChange = { tariff12h = it },
+                        onValueChange = { tariff12h = it.replace(',', '.') },
                         label = { Text("Precio 12h ($) *", maxLines = 1) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -260,6 +265,7 @@ private fun TentFormDialog(
                         onValueChange = { units = it },
                         label = { Text("Unidades *", maxLines = 1) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         modifier = Modifier.weight(1f)
                     )
                     ChoiceField(

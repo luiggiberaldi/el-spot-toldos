@@ -24,6 +24,10 @@ private val ElSpotColors = darkColorScheme(
     surfaceVariant = Color(0xFF1A2535),
     onSurfaceVariant = Color(0xFFB8C5D4),
     outline = Color(0xFF45566B),
+    tertiary = Color(0xFFFFC247),
+    onTertiary = Color(0xFF261900),
+    tertiaryContainer = Color(0xFF4A3400),
+    onTertiaryContainer = Color(0xFFFFDEA3),
     error = Color(0xFFFF6B6B),
     onError = Color(0xFF2A0505)
 )

@@ -5,6 +5,17 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.core.content.FileProvider
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.runtime.collectAsState
+import com.elspot.toldos.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +61,7 @@ fun SettingsScreen(state: AppUiState, viewModel: AppViewModel) {
     var editing by remember(state.config) { mutableStateOf(state.config) }
     var saved by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
+    val updateState by viewModel.updateState.collectAsState()
     val context = LocalContext.current
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let { viewModel.exportBackup(it) }
@@ -96,10 +108,34 @@ fun SettingsScreen(state: AppUiState, viewModel: AppViewModel) {
                     Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                     Text("Actualizaciones", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
-                Text("Busca una nueva versión publicada en el canal oficial de EL SPOT. Tus datos locales se conservan durante la actualización.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = viewModel::checkForUpdates) {
-                    Icon(Icons.Default.SystemUpdate, contentDescription = null)
-                    Text("Buscar actualización", modifier = Modifier.padding(start = 8.dp))
+                Text(
+                    "Versión instalada: v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE}). Tus datos locales se conservan durante cualquier actualización.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = viewModel::checkForUpdates,
+                        enabled = updateState !is UpdateUiState.Checking && updateState !is UpdateUiState.Downloading
+                    ) {
+                        if (updateState is UpdateUiState.Checking) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                            Text("Buscando actualización...")
+                        } else {
+                            Icon(Icons.Default.SystemUpdate, contentDescription = null)
+                            Text("Buscar actualización", modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+                when (val current = updateState) {
+                    is UpdateUiState.UpToDate -> {
+                        Text("✅ La app está al día en la versión más reciente.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                    is UpdateUiState.Failed -> {
+                        Text("⚠️ ${current.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    else -> Unit
                 }
             }
         }
@@ -133,6 +169,79 @@ fun SettingsScreen(state: AppUiState, viewModel: AppViewModel) {
             danger = true
         )
     }
+
+    when (val currentUpdate = updateState) {
+        is UpdateUiState.Available -> {
+            AlertDialog(
+                onDismissRequest = viewModel::dismissUpdateDialog,
+                title = { Text("Nueva versión disponible") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Versión ${currentUpdate.update.versionName} lista para descargar.", fontWeight = FontWeight.SemiBold)
+                        if (currentUpdate.update.notes.isNotBlank()) {
+                            Text(currentUpdate.update.notes, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissUpdateDialog) { Text("Más tarde") }
+                },
+                confirmButton = {
+                    Button(onClick = { viewModel.downloadAndInstallUpdate(currentUpdate.update) }) {
+                        Text("Descargar e instalar")
+                    }
+                }
+            )
+        }
+        is UpdateUiState.Downloading -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Descargando actualización") },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Text(currentUpdate.progressText)
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        is UpdateUiState.ReadyToInstall -> {
+            AlertDialog(
+                onDismissRequest = viewModel::dismissUpdateDialog,
+                title = { Text("Actualización lista") },
+                text = { Text("La versión ${currentUpdate.versionName} fue descargada e íntegra. Toca Continuar para instalar el paquete oficial.") },
+                dismissButton = { TextButton(onClick = viewModel::dismissUpdateDialog) { Text("Cancelar") } },
+                confirmButton = {
+                    Button(onClick = {
+                        installDownloadedApk(context, currentUpdate.apkFile)
+                        viewModel.dismissUpdateDialog()
+                    }) {
+                        Text("Instalar ahora")
+                    }
+                }
+            )
+        }
+        else -> Unit
+    }
+}
+
+private fun installDownloadedApk(context: android.content.Context, apkFile: java.io.File) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+            data = Uri.parse("package:${context.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+        return
+    }
+    val uri = FileProvider.getUriForFile(context, context.getString(com.elspot.toldos.R.string.file_provider_authority), apkFile)
+    val installIntent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, "application/vnd.android.package-archive")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(installIntent)
 }
 
 @Composable
@@ -146,13 +255,46 @@ private fun SettingsBusinessCard(
                 Icon(Icons.Default.Business, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Text("Datos del negocio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            OutlinedTextField(config.businessName, { onChange(config.copy(businessName = it)) }, label = { Text("Nombre del negocio *") }, singleLine = true)
+            OutlinedTextField(
+                value = config.businessName,
+                onValueChange = { onChange(config.copy(businessName = it)) },
+                label = { Text("Nombre del negocio *") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(config.rif, { onChange(config.copy(rif = it)) }, label = { Text("RIF") }, singleLine = true, modifier = Modifier.weight(1f))
-                OutlinedTextField(config.phone, { onChange(config.copy(phone = it)) }, label = { Text("Teléfono") }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(
+                    value = config.rif,
+                    onValueChange = { onChange(config.copy(rif = it)) },
+                    label = { Text("RIF") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = config.phone,
+                    onValueChange = { onChange(config.copy(phone = it)) },
+                    label = { Text("Teléfono") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f)
+                )
             }
-            OutlinedTextField(config.address, { onChange(config.copy(address = it)) }, label = { Text("Dirección") }, minLines = 2, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(config.exchangeRate.takeIf { it > 0 }?.toString() ?: "", { raw -> onChange(config.copy(exchangeRate = raw.replace(',', '.').toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0)) }, label = { Text("Tasa Bs por 1 $") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = config.address,
+                onValueChange = { onChange(config.copy(address = it)) },
+                label = { Text("Dirección") },
+                minLines = 2,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = config.exchangeRate.takeIf { it > 0 }?.toString() ?: "",
+                onValueChange = { raw -> onChange(config.copy(exchangeRate = raw.replace(',', '.').toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0)) },
+                label = { Text("Tasa Bs por 1 $") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth()
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

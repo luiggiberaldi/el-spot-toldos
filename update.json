@@ -1,8 +1,8 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.3",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.3/el-spot-toldos-1.0.3.apk",
-  "sha256": "46df7d8bc10aeeaa013fb270a9b07123225a25f061b57f9886b6c16619491f48",
-  "notes": "Rediseño visual UI/UX de modales Nuevo Toldo y Nuevo Alquiler en pantallas móviles, corrección de textos y estados vacíos informativos en selectores.",
+  "versionCode": 5,
+  "versionName": "1.0.4",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.4/el-spot-toldos-1.0.4.apk",
+  "sha256": "19f5bbd17041c1683fe005ba2fa5c08b4297ac3fc652df011bbab970a8c4c4ae",
+  "notes": "Mejoras integrales de UI/UX: actualización interactiva en pantalla con progreso, teclados numéricos automáticos en precios y teléfonos, soporte para botón atrás (BackHandler), contacto directo por WhatsApp y llamada, paleta ámbar para cobros pendientes y diseño optimizado de recibos.",
   "mandatory": false
 }

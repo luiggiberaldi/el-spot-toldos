@@ -1,6 +1,7 @@
 package com.elspot.toldos.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,11 +15,14 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -101,8 +105,16 @@ private fun ReceiptRow(
         currentConfig.copy(exchangeRate = it.exchangeRate)
     } ?: currentConfig
     val clientName = snapshot?.clientName ?: "Cliente"
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Card(
+        onClick = onOpen,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${receipt.folio} · $clientName", fontWeight = FontWeight.SemiBold)
                 Text(
@@ -114,11 +126,35 @@ private fun ReceiptRow(
                 Text(formatDual(receipt.montoCents, config), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Text(status.label, color = if (status == ReceiptPaymentStatus.PAID) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
             }
-            Row {
-                IconButton(onClick = onOpen) { Icon(Icons.Default.Visibility, "Ver recibo") }
-                IconButton(onClick = onSharePdf) { Icon(Icons.Default.Download, "Compartir PDF") }
-                IconButton(onClick = onShareWhatsApp) { Icon(Icons.Default.Chat, "Enviar por WhatsApp") }
-                IconButton(onClick = onShareText) { Icon(Icons.Default.IosShare, "Compartir mensaje") }
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                IconButton(onClick = onShareWhatsApp) {
+                    Icon(Icons.Default.Chat, contentDescription = "Enviar por WhatsApp", tint = MaterialTheme.colorScheme.primary)
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Ver recibo") },
+                            onClick = { menuOpen = false; onOpen() },
+                            leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Compartir PDF") },
+                            onClick = { menuOpen = false; onSharePdf() },
+                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Compartir texto") },
+                            onClick = { menuOpen = false; onShareText() },
+                            leadingIcon = { Icon(Icons.Default.IosShare, contentDescription = null) }
+                        )
+                    }
+                }
             }
         }
     }

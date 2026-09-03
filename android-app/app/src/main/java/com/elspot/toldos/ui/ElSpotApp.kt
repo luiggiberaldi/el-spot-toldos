@@ -1,5 +1,6 @@
 package com.elspot.toldos.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -61,6 +62,16 @@ fun ElSpotApp(viewModel: AppViewModel = viewModel()) {
     var selectedTab by remember { mutableStateOf(AppTab.DASHBOARD) }
     var requestedRentalId by remember { mutableStateOf<String?>(null) }
     var requestNewRental by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
+    BackHandler(enabled = !drawerState.isOpen && selectedTab != AppTab.DASHBOARD) {
+        selectedTab = AppTab.DASHBOARD
+        requestedRentalId = null
+        requestNewRental = false
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -297,8 +300,19 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                 item { OutlinedTextField(address, { address = it }, label = { Text("Dirección del evento") }, minLines = 2) }
                 item { OutlinedButton(onClick = { if (location.hasPermission()) scope.launch { capturing = true; locationError = null; try { val result = location.current(); latitude = result.latitude; longitude = result.longitude; if (address.isBlank() && !result.address.isNullOrBlank()) address = result.address } catch (t: Throwable) { locationError = t.message } finally { capturing = false } } else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, enabled = !capturing, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.LocationOn, null); Spacer(Modifier.size(7.dp)); Text(if (capturing) "Capturando ubicación…" else "Capturar ubicación GPS") }; GpsSummary(latitude, longitude); ErrorMessage(locationError) }
                 item { FormDivider() }
-                item { FormLabel("Pago y estado") }
-                item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(deposit, { deposit = it }, label = { Text("Abono ($)") }, singleLine = true, modifier = Modifier.weight(1f)); ChoiceField("Estado", status, RentalStatus.entries.map { it to it.label }, { status = it }, modifier = Modifier.weight(1f)) } }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = deposit,
+                            onValueChange = { deposit = it.replace(',', '.') },
+                            label = { Text("Abono ($)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                            modifier = Modifier.weight(1f)
+                        )
+                        ChoiceField("Estado", status, RentalStatus.entries.map { it to it.label }, { status = it }, modifier = Modifier.weight(1f))
+                    }
+                }
                 item { OutlinedTextField(notes, { notes = it }, label = { Text("Notas") }, minLines = 2) }
                 item { MoneySummary(totalCents, depositCents, state.config) }
                 item { ErrorMessage(error) }
@@ -419,11 +433,12 @@ private fun RentalLineEditor(
                     onValueChange = { onChange(line.copy(quantity = it)) },
                     label = { Text("Cantidad", maxLines = 1) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = line.tariff,
-                    onValueChange = { onChange(line.copy(tariff = it)) },
+                    onValueChange = { onChange(line.copy(tariff = it.replace(',', '.'))) },
                     label = {
                         Text(
                             if (mode == RentalMode.H12) "Precio 12h ($)" else "Precio 24h ($)",
@@ -432,6 +447,7 @@ private fun RentalLineEditor(
                         )
                     },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                     modifier = Modifier.weight(1.3f)
                 )
             }
@@ -471,5 +487,25 @@ private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewMod
     var createdReceipt by remember { mutableStateOf<com.elspot.toldos.data.ReciboEntity?>(null) }
     LaunchedEffect(Unit) { viewModel.events.collect { event -> if (event is AppEvent.ReceiptCreated && event.receipt.alquilerId == rental.id) createdReceipt = event.receipt } }
     createdReceipt?.let { receipt -> AlertDialog(onDismissRequest = onDismiss, title = { Text("Recibo ${receipt.folio} emitido") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Icon(Icons.Default.TaskAlt, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)); Text("El recibo fue guardado y está listo para compartir por WhatsApp."); Text("Puedes enviar el PDF con el mensaje profesional o compartir solo el resumen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, dismissButton = { Row { TextButton(onClick = { viewModel.shareReceiptWhatsApp(receipt) }) { Icon(Icons.Default.Chat, null); Text("WhatsApp") }; TextButton(onClick = { viewModel.shareReceipt(receipt, true) }) { Text("Mensaje") }; TextButton(onClick = { viewModel.shareReceipt(receipt) }) { Text("PDF") } } }, confirmButton = { Button(onClick = onDismiss) { Text("Cerrar") } }); return }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Emitir recibo · ${rental.folio}") }, text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("Pendiente actual: ${formatDual(balance, state.config)}", color = MaterialTheme.colorScheme.secondary); OutlinedTextField(amount, { amount = it }, label = { Text("Monto a cancelar ($)") }, singleLine = true); OutlinedTextField(concept, { concept = it }, label = { Text("Concepto") }, minLines = 2); ChoiceField("Estado del recibo", paymentStatus, listOf(ReceiptPaymentStatus.PAID to "Pagado · registrar como abono", ReceiptPaymentStatus.DUE to "Por pagar · no registrar abono"), { paymentStatus = it }); if (amountCents > 0) Text("Se emitirá: ${formatDual(amountCents, state.config)}", fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }, confirmButton = { Button(onClick = { viewModel.emitReceipt(rental.id, amountCents, concept, paymentStatus) }, enabled = amountCents > 0L && (paymentStatus == ReceiptPaymentStatus.DUE || amountCents <= balance)) { Text("Emitir recibo") } })
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Emitir recibo · ${rental.folio}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Pendiente actual: ${formatDual(balance, state.config)}", color = MaterialTheme.colorScheme.secondary)
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it.replace(',', '.') },
+                    label = { Text("Monto a cancelar ($)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(concept, { concept = it }, label = { Text("Concepto") }, minLines = 2)
+                ChoiceField("Estado del recibo", paymentStatus, listOf(ReceiptPaymentStatus.PAID to "Pagado · registrar como abono", ReceiptPaymentStatus.DUE to "Por pagar · no registrar abono"), { paymentStatus = it })
+                if (amountCents > 0) Text("Se emitirá: ${formatDual(amountCents, state.config)}", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { Button(onClick = { viewModel.emitReceipt(rental.id, amountCents, concept, paymentStatus) }, enabled = amountCents > 0L && (paymentStatus == ReceiptPaymentStatus.DUE || amountCents <= balance)) { Text("Emitir recibo") } }
+    )
 }
