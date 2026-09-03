@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -215,34 +216,67 @@ private fun TentFormDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Nuevo toldo" else "Editar toldo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre *") }, singleLine = true)
-                OutlinedTextField(size, { size = it }, label = { Text("Tamaño") }, singleLine = true)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre del toldo *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = size,
+                    onValueChange = { size = it },
+                    label = { Text("Tamaño (ej. 3x3m, 6x3m)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     OutlinedTextField(
-                        tariff,
-                        { tariff = it },
-                        label = { Text("Precio 24h ($) *") },
+                        value = tariff,
+                        onValueChange = { tariff = it },
+                        label = { Text("Precio 24h ($) *", maxLines = 1) },
                         singleLine = true,
-                        modifier = Modifier.weight(1.2f)
+                        modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
-                        tariff12h,
-                        { tariff12h = it },
-                        label = { Text("Precio 12h ($) *") },
+                        value = tariff12h,
+                        onValueChange = { tariff12h = it },
+                        label = { Text("Precio 12h ($) *", maxLines = 1) },
                         singleLine = true,
-                        modifier = Modifier.weight(1.2f)
-                    )
-                    OutlinedTextField(
-                        units,
-                        { units = it },
-                        label = { Text("Unidades *") },
-                        singleLine = true,
-                        modifier = Modifier.weight(0.8f)
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                ChoiceField("Estado", status, TentStatus.entries.map { it to it.label }, { status = it })
-                OutlinedTextField(notes, { notes = it }, label = { Text("Notas") }, minLines = 2)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = units,
+                        onValueChange = { units = it },
+                        label = { Text("Unidades *", maxLines = 1) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ChoiceField(
+                        label = "Estado",
+                        selected = status,
+                        options = TentStatus.entries.map { it to it.label },
+                        onSelected = { status = it },
+                        modifier = Modifier.weight(1.1f)
+                    )
+                }
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notas") },
+                    minLines = 2,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 ErrorMessage(error)
             }
         },
