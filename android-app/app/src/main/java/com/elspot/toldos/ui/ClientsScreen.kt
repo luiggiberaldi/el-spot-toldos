@@ -14,7 +14,9 @@ import android.net.Uri
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import com.elspot.toldos.domain.capitalizeWords
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
@@ -135,7 +137,7 @@ private fun ClientRow(client: ClienteEntity, onEdit: () -> Unit, onDelete: () ->
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(client.nombre, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                Text(capitalizeWords(client.nombre), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                 val secondary = listOfNotNull(
                     client.cedula.takeIf { it.isNotBlank() },
                     client.telefono.takeIf { it.isNotBlank() }
@@ -202,7 +204,7 @@ private fun ClientFormDialog(initial: ClienteEntity?, onDismiss: () -> Unit, onS
                     onValueChange = { name = it },
                     label = { Text("Nombre *") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
                 )
                 OutlinedTextField(
                     value = document,
@@ -233,7 +235,7 @@ private fun ClientFormDialog(initial: ClienteEntity?, onDismiss: () -> Unit, onS
         confirmButton = {
             Button(onClick = {
                 if (name.trim().isBlank()) error = "El nombre es obligatorio."
-                else onSave(ClientFormValues(name, document, phone, address, notes))
+                else onSave(ClientFormValues(capitalizeWords(name), document, phone, address, notes))
             }) { Text("Guardar") }
         }
     )

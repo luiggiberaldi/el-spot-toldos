@@ -46,3 +46,25 @@ export function nombreArchivoSeguro(valor: string, fallback = 'Cliente'): string
     .replace(/[^a-zA-Z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || fallback;
 }
+
+/** Capitaliza la primera letra de cada palabra para nombres propios de clientes, toldos y negocios. */
+export function capitalizarPalabras(texto: string): string {
+  const limpio = texto.trim();
+  if (!limpio) return '';
+  return limpio.split(/\s+/).map((palabra) => {
+    let capNext = true;
+    return Array.from(palabra.toLowerCase()).map((ch) => {
+      if (capNext && /\p{L}/u.test(ch)) {
+        capNext = false;
+        return ch.toUpperCase();
+      }
+      if (/\p{N}/u.test(ch)) {
+        capNext = false;
+      } else if (!/\p{L}/u.test(ch)) {
+        capNext = true;
+      }
+      return ch;
+    }).join('');
+  }).join(' ');
+}
+

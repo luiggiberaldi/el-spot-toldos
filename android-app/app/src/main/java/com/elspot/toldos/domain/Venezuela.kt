@@ -1,5 +1,31 @@
 package com.elspot.toldos.domain
 
+import java.util.Locale
+
+/** Capitaliza la primera letra de cada palabra para nombres propios de clientes, toldos y negocios. */
+fun capitalizeWords(text: String): String {
+    val trimmed = text.trim()
+    if (trimmed.isEmpty()) return ""
+    return trimmed.split(" ").filter { it.isNotEmpty() }.joinToString(" ") { word ->
+        val sb = StringBuilder()
+        var capitalizeNext = true
+        for (ch in word.lowercase(Locale.ROOT)) {
+            if (capitalizeNext && ch.isLetter()) {
+                sb.append(ch.titlecaseChar())
+                capitalizeNext = false
+            } else {
+                sb.append(ch)
+                if (ch.isDigit()) {
+                    capitalizeNext = false
+                } else if (!ch.isLetter()) {
+                    capitalizeNext = true
+                }
+            }
+        }
+        sb.toString()
+    }
+}
+
 fun formatVenezuelanDocument(value: String): String {
     val raw = value.trim().uppercase().replace(" ", "")
     if (raw.isBlank()) return ""

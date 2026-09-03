@@ -13,7 +13,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import com.elspot.toldos.domain.capitalizeWords
 import androidx.compose.runtime.collectAsState
 import com.elspot.toldos.BuildConfig
 import androidx.compose.foundation.background
@@ -260,7 +262,7 @@ private fun SettingsBusinessCard(
                 onValueChange = { onChange(config.copy(businessName = it)) },
                 label = { Text("Nombre del negocio *") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(

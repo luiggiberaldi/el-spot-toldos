@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,11 +24,16 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditLocationAlt
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,6 +70,7 @@ import com.elspot.toldos.data.ReceiptPaymentStatus
 import com.elspot.toldos.data.TentStatus
 import com.elspot.toldos.data.ToldoEntity
 import com.elspot.toldos.domain.calculateReturnAt
+import com.elspot.toldos.domain.capitalizeWords
 import com.elspot.toldos.domain.centsToDollarText
 import com.elspot.toldos.domain.formatDateTime
 import com.elspot.toldos.domain.formatDual
@@ -145,10 +152,24 @@ private fun RentalRow(rental: AlquilerEntity, state: AppUiState, onOpen: () -> U
     Card(onClick = onOpen, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${rental.folio} · ${client?.nombre ?: "Cliente eliminado"}", fontWeight = FontWeight.SemiBold)
+                Text("${rental.folio} · ${capitalizeWords(client?.nombre ?: "Cliente eliminado")}", fontWeight = FontWeight.SemiBold)
                 Text("${if (RentalMode.from(rental.modalidad) == RentalMode.H12) "12 horas" else "24 horas"} · devuelve ${formatDateTime(rental.devolucion)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Total ${formatDual(rental.montoTotalCents, state.config)} · Pendiente ${formatDual(balance, state.config)}", style = MaterialTheme.typography.bodySmall, color = if (balance > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary)
                 if (rental.direccion.isNotBlank()) Text(rental.direccion, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (rental.latitud != null && rental.longitud != null) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    AssistChip(
+                        onClick = { com.elspot.toldos.location.openGoogleMaps(context, rental.latitud, rental.longitud, "Alquiler ${rental.folio}") },
+                        label = { Text("Ver en Google Maps", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.primary)
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        },
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 StatusBadge(RentalStatus.from(rental.estado))
@@ -201,6 +222,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     var error by remember(initial) { mutableStateOf<String?>(null) }
     var locationError by remember(initial) { mutableStateOf<String?>(null) }
     var capturing by remember { mutableStateOf(false) }
+    var showManualLocationDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val location = remember { LocationService(context) }
@@ -216,6 +238,20 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     val depositCents = parsedDeposit ?: 0L
     val returnAt = calculateReturnAt(startAt, mode.hours)
 
+    if (showManualLocationDialog) {
+        ManualLocationDialog(
+            initialLatitude = latitude,
+            initialLongitude = longitude,
+            onDismiss = { showManualLocationDialog = false },
+            onConfirm = { lat, lng ->
+                latitude = lat
+                longitude = lng
+                locationError = null
+                showManualLocationDialog = false
+            }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Nuevo alquiler" else "Editar ${initial.folio}") },
@@ -225,7 +261,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                     ChoiceField(
                         label = "Cliente",
                         selected = clientId,
-                        options = state.clients.map { it.id to it.nombre },
+                        options = state.clients.map { it.id to capitalizeWords(it.nombre) },
                         onSelected = { clientId = it },
                         emptyMessage = "Sin clientes registrados",
                         emptyHint = "Primero agrega clientes desde la sección Clientes."
@@ -296,7 +332,68 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                 item { FormDivider() }
                 item { FormLabel("Entrega y ubicación") }
                 item { OutlinedTextField(address, { address = it }, label = { Text("Dirección del evento") }, minLines = 2) }
-                item { OutlinedButton(onClick = { if (location.hasPermission()) scope.launch { capturing = true; locationError = null; try { val result = location.current(); latitude = result.latitude; longitude = result.longitude; if (address.isBlank() && !result.address.isNullOrBlank()) address = result.address } catch (t: Throwable) { locationError = t.message } finally { capturing = false } } else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, enabled = !capturing, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.LocationOn, null); Spacer(Modifier.size(7.dp)); Text(if (capturing) "Capturando ubicación…" else "Capturar ubicación GPS") }; GpsSummary(latitude, longitude); ErrorMessage(locationError) }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                if (location.hasPermission()) {
+                                    scope.launch {
+                                        capturing = true
+                                        locationError = null
+                                        try {
+                                            val result = location.current()
+                                            latitude = result.latitude
+                                            longitude = result.longitude
+                                            if (address.isBlank() && !result.address.isNullOrBlank()) {
+                                                address = result.address
+                                            }
+                                        } catch (t: Throwable) {
+                                            locationError = t.message ?: "No se pudo obtener la ubicación."
+                                        } finally {
+                                            capturing = false
+                                        }
+                                    }
+                                } else {
+                                    permissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            },
+                            enabled = !capturing,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.size(5.dp))
+                            Text(if (capturing) "Capturando…" else "GPS actual", maxLines = 1)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showManualLocationDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.EditLocationAlt, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.size(5.dp))
+                            Text("Ubicación manual", maxLines = 1)
+                        }
+                    }
+
+                    if (latitude != null && longitude != null) {
+                        Spacer(Modifier.height(6.dp))
+                        GpsSummary(
+                            latitude = latitude,
+                            longitude = longitude,
+                            onClear = { latitude = null; longitude = null }
+                        )
+                    }
+
+                    ErrorMessage(locationError)
+                }
                 item { FormDivider() }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -362,7 +459,7 @@ private fun RentalLineEditor(
         .filter { !allowInventory || TentStatus.from(it.estado) != TentStatus.REPAIR }
         .filter { !allowInventory || it.id == line.tentId || availableUnitsForTent(state, it.id, currentRentalId) > 0 }
         .map { tent ->
-            tent.id to "${tent.nombre} (${tent.tamano.ifBlank { "sin tamaño" }} · ${availableUnitsForTent(state, tent.id, currentRentalId)}/${tent.unidades} disp.)"
+            tent.id to "${capitalizeWords(tent.nombre)} (${tent.tamano.ifBlank { "sin tamaño" }} · ${availableUnitsForTent(state, tent.id, currentRentalId)}/${tent.unidades} disp.)"
         }
 
     Card(
@@ -470,7 +567,7 @@ private fun RentalDetailDialog(rental: AlquilerEntity, state: AppUiState, viewMo
         item { GpsSummary(rental.latitud, rental.longitud) }
         item { Divider() }
         item { Text("Toldos", fontWeight = FontWeight.SemiBold) }
-        items(rentalItems, key = { "${it.alquilerId}-${it.linea}" }) { line -> val tent = state.tents.firstOrNull { it.id == line.toldoId }; Text("${line.cantidad} × ${tent?.nombre ?: "Toldo eliminado"} — ${centsToDollarText(line.tarifaCents * line.cantidad)}", style = MaterialTheme.typography.bodySmall) }
+        items(rentalItems, key = { "${it.alquilerId}-${it.linea}" }) { line -> val tent = state.tents.firstOrNull { it.id == line.toldoId }; Text("${line.cantidad} × ${capitalizeWords(tent?.nombre ?: "Toldo eliminado")} — ${centsToDollarText(line.tarifaCents * line.cantidad)}", style = MaterialTheme.typography.bodySmall) }
         item { MoneySummary(rental.montoTotalCents, rental.abonoCents, state.config) }
     } }, dismissButton = { Row { TextButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error); Text("Eliminar") }; TextButton(onClick = onEdit) { Icon(Icons.Default.Edit, null); Text("Editar") } } }, confirmButton = { Button(onClick = onReceipt, enabled = rental.montoTotalCents > 0L) { Icon(Icons.Default.ReceiptLong, null); Spacer(Modifier.size(6.dp)); Text("Emitir recibo") } })
 }
@@ -505,5 +602,101 @@ private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewMod
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
         confirmButton = { Button(onClick = { viewModel.emitReceipt(rental.id, amountCents, concept, paymentStatus) }, enabled = amountCents > 0L && (paymentStatus == ReceiptPaymentStatus.DUE || amountCents <= balance)) { Text("Emitir recibo") } }
+    )
+}
+
+@Composable
+private fun ManualLocationDialog(
+    initialLatitude: Double?,
+    initialLongitude: Double?,
+    onDismiss: () -> Unit,
+    onConfirm: (lat: Double, lng: Double) -> Unit
+) {
+    var rawInput by remember { mutableStateOf("") }
+    var latText by remember { mutableStateOf(initialLatitude?.toString() ?: "") }
+    var lngText by remember { mutableStateOf(initialLongitude?.toString() ?: "") }
+    var parseError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.EditLocationAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        title = { Text("Añadir ubicación manual") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Pega coordenadas (ej: 10.142918, -68.016897) o enlace de Google Maps, o escribe latitud y longitud directamente.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = rawInput,
+                    onValueChange = { text ->
+                        rawInput = text
+                        parseError = null
+                        val parsed = com.elspot.toldos.location.parseCoordinates(text)
+                        if (parsed != null) {
+                            latText = "%.6f".format(java.util.Locale.US, parsed.first)
+                            lngText = "%.6f".format(java.util.Locale.US, parsed.second)
+                        }
+                    },
+                    label = { Text("Pegar enlace o coordenadas") },
+                    placeholder = { Text("10.142918, -68.016897 o link maps") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = latText,
+                        onValueChange = {
+                            latText = it.replace(',', '.')
+                            parseError = null
+                        },
+                        label = { Text("Latitud *") },
+                        placeholder = { Text("10.142918") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = lngText,
+                        onValueChange = {
+                            lngText = it.replace(',', '.')
+                            parseError = null
+                        },
+                        label = { Text("Longitud *") },
+                        placeholder = { Text("-68.016897") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                ErrorMessage(parseError)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val lat = latText.trim().toDoubleOrNull()
+                val lng = lngText.trim().toDoubleOrNull()
+                when {
+                    lat == null || lng == null -> {
+                        parseError = "Ingresa números válidos para latitud y longitud."
+                    }
+                    lat !in -90.0..90.0 -> {
+                        parseError = "La latitud debe estar entre -90 y 90."
+                    }
+                    lng !in -180.0..180.0 -> {
+                        parseError = "La longitud debe estar entre -180 y 180."
+                    }
+                    else -> {
+                        onConfirm(lat, lng)
+                    }
+                }
+            }) {
+                Text("Guardar ubicación")
+            }
+        }
     )
 }

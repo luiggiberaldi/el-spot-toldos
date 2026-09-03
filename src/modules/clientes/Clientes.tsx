@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAppStore } from '../../data/store';
 import { generarId } from '../../lib/ids';
-import { formatearCedulaVenezolana, formatearTelefonoVenezolano } from '../../lib/venezuela';
+import { capitalizarPalabras, formatearCedulaVenezolana, formatearTelefonoVenezolano } from '../../lib/venezuela';
 import type { Cliente } from '../../types/modelos';
 import { Modal } from '../../components/Modal';
 import {
@@ -9,10 +9,6 @@ import {
   CampoTextoArea
 } from '../../components/Campos';
 import { Plus } from 'lucide-react';
-
-function capitalizarPalabras(valor: string): string {
-  return valor.replace(/(^|[\s-])([\p{L}])/gu, (_, separador: string, letra: string) => `${separador}${letra.toLocaleUpperCase('es-VE')}`);
-}
 
 /** Módulo de gestión de clientes. */
 export function Clientes() {
@@ -65,7 +61,7 @@ export function Clientes() {
       if (editando) {
         actualizarCliente({
           ...editando,
-          nombre: nombre.trim(),
+          nombre: capitalizarPalabras(nombre),
           cedula: formatearCedulaVenezolana(cedula),
           telefono: formatearTelefonoVenezolano(telefono),
           email: editando.email,
@@ -75,7 +71,7 @@ export function Clientes() {
       } else {
         agregarCliente({
           id: generarId(),
-          nombre: nombre.trim(),
+          nombre: capitalizarPalabras(nombre),
           cedula: formatearCedulaVenezolana(cedula),
           telefono: formatearTelefonoVenezolano(telefono),
           email: '',

@@ -12,6 +12,7 @@ import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.elspot.toldos.data.ReceiptSnapshot
+import com.elspot.toldos.domain.capitalizeWords
 import com.elspot.toldos.domain.centsToBolivarText
 import com.elspot.toldos.domain.centsToDollarText
 import com.elspot.toldos.domain.exchangeRateText
@@ -74,7 +75,7 @@ class ReceiptPdfService(private val context: Context) {
         y = headerBottom
 
         snapshot.items.forEachIndexed { index, item ->
-            val itemLabel = if (item.size.isBlank()) item.name else "${item.name} · ${item.size}"
+            val itemLabel = if (item.size.isBlank()) capitalizeWords(item.name) else "${capitalizeWords(item.name)} · ${item.size}"
             val rowHeight = 31f
             if (index % 2 == 0) {
                 paint.color = pale
@@ -213,7 +214,7 @@ class ReceiptPdfService(private val context: Context) {
         paint.strokeWidth = 1f
         canvas.drawLine(x + 14f, current + 9f, x + width - 14f, current + 9f, paint)
         current += 29f
-        current = drawCardField(canvas, paint, "NOMBRE", snapshot.clientName.ifBlank { "—" }, x + 14f, current, width - 28f)
+        current = drawCardField(canvas, paint, "NOMBRE", capitalizeWords(snapshot.clientName).ifBlank { "—" }, x + 14f, current, width - 28f)
         if (snapshot.clientDocument.isNotBlank()) current = drawCardField(canvas, paint, "DOCUMENTO", snapshot.clientDocument, x + 14f, current, width - 28f)
         if (snapshot.clientPhone.isNotBlank()) current = drawCardField(canvas, paint, "TELÉFONO", snapshot.clientPhone, x + 14f, current, width - 28f)
         if (snapshot.clientAddress.isNotBlank()) drawCardField(canvas, paint, "DIRECCIÓN", snapshot.clientAddress, x + 14f, current, width - 28f)
@@ -277,10 +278,10 @@ class ReceiptPdfService(private val context: Context) {
     private fun professionalMessage(snapshot: ReceiptSnapshot): String {
         val bs = centsToBolivarText(snapshot.amountCents, snapshot.exchangeRate)
         return buildString {
-            appendLine("${snapshot.businessName.ifBlank { "EL SPOT" }}")
+            appendLine(capitalizeWords(snapshot.businessName.ifBlank { "EL SPOT" }))
             appendLine("Recibo N° ${snapshot.folio}")
             appendLine("Estado: ${snapshot.paymentStatus.label.uppercase()}")
-            appendLine("Hola ${snapshot.clientName},")
+            appendLine("Hola ${capitalizeWords(snapshot.clientName)},")
             appendLine("Adjuntamos el recibo correspondiente a tu alquiler de toldo.")
             appendLine("Modalidad: ${snapshot.mode.label}")
             appendLine("Monto: ${centsToDollarText(snapshot.amountCents)}")

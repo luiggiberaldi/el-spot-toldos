@@ -53,3 +53,33 @@ export function enlaceMapa(lat: number, lng: number): string {
 export function formatearCoordenadas(lat: number, lng: number): string {
   return `${lat.toFixed(7)}, ${lng.toFixed(7)}`;
 }
+
+/** Extrae latitud y longitud desde texto o enlace de Google Maps. */
+export function parsearCoordenadas(input: string): { lat: number; lng: number } | null {
+  const texto = input.trim();
+  if (!texto) return null;
+
+  const matchAt = texto.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  if (matchAt) {
+    const lat = parseFloat(matchAt[1]);
+    const lng = parseFloat(matchAt[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+  }
+
+  const matchQuery = texto.match(/[?&](?:q|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  if (matchQuery) {
+    const lat = parseFloat(matchQuery[1]);
+    const lng = parseFloat(matchQuery[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+  }
+
+  const matchDirect = texto.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/);
+  if (matchDirect) {
+    const lat = parseFloat(matchDirect[1]);
+    const lng = parseFloat(matchDirect[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+  }
+
+  return null;
+}
+

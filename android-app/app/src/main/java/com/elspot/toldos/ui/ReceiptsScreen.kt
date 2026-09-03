@@ -41,6 +41,7 @@ import com.elspot.toldos.data.AppUiState
 import com.elspot.toldos.data.ReciboEntity
 import com.elspot.toldos.data.ReceiptPaymentStatus
 import com.elspot.toldos.data.ReceiptSnapshot
+import com.elspot.toldos.domain.capitalizeWords
 import com.elspot.toldos.domain.centsToDollarText
 import com.elspot.toldos.domain.centsToBolivarText
 import com.elspot.toldos.domain.formatDateTime
@@ -104,7 +105,7 @@ private fun ReceiptRow(
     val config = snapshot?.let {
         currentConfig.copy(exchangeRate = it.exchangeRate)
     } ?: currentConfig
-    val clientName = snapshot?.clientName ?: "Cliente"
+    val clientName = capitalizeWords(snapshot?.clientName ?: "Cliente")
     var menuOpen by remember { mutableStateOf(false) }
     Card(
         onClick = onOpen,

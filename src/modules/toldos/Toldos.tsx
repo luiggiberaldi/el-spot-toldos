@@ -8,10 +8,7 @@ import { CampoNumero, CampoSelect, CampoTexto, CampoTextoArea } from '../../comp
 import { EtiquetaToldo } from '../../components/Etiqueta';
 import { Plus } from 'lucide-react';
 import { unidadesOcupadas } from '../../lib/validaciones';
-
-function capitalizarPalabras(valor: string): string {
-  return valor.replace(/(^|[\s-])([\p{L}])/gu, (_, separador: string, letra: string) => `${separador}${letra.toLocaleUpperCase('es-VE')}`);
-}
+import { capitalizarPalabras } from '../../lib/venezuela';
 
 const OPCIONES_ESTADO: Array<{ valor: EstadoToldo; etiqueta: string }> = [
   { valor: 'disponible', etiqueta: 'Disponible' },
@@ -92,7 +89,7 @@ export function Toldos() {
       if (editando) {
         actualizarToldo({
           ...editando,
-          nombre: nombre.trim(),
+          nombre: capitalizarPalabras(nombre),
           tamano: tamano.trim(),
           tarifa: tarifaNumero,
           tarifa12h: tarifa12hNumero,
@@ -103,7 +100,7 @@ export function Toldos() {
       } else {
         agregarToldo({
           id: generarId(),
-          nombre: nombre.trim(),
+          nombre: capitalizarPalabras(nombre),
           tamano: tamano.trim(),
           tarifa: tarifaNumero,
           tarifa12h: tarifa12hNumero,

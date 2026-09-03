@@ -43,8 +43,9 @@ class AppRepository(
     }
 
     suspend fun saveClient(entity: ClienteEntity) {
-        clients.insert(entity)
-        addLog("Cambio", "Cliente", "Cliente actualizado: ${entity.nombre}")
+        val capitalized = entity.copy(nombre = com.elspot.toldos.domain.capitalizeWords(entity.nombre))
+        clients.insert(capitalized)
+        addLog("Cambio", "Cliente", "Cliente actualizado: ${capitalized.nombre}")
     }
 
     suspend fun deleteClient(id: String) {
@@ -72,8 +73,9 @@ class AppRepository(
         require(existing != null || TentStatus.from(entity.estado) != TentStatus.RENTED) {
             "Un toldo nuevo debe iniciar como disponible, en reparación o retirado."
         }
-        tents.insert(entity)
-        addLog("Cambio", "Toldo", "Toldo actualizado: ${entity.nombre}")
+        val capitalized = entity.copy(nombre = com.elspot.toldos.domain.capitalizeWords(entity.nombre))
+        tents.insert(capitalized)
+        addLog("Cambio", "Toldo", "Toldo actualizado: ${capitalized.nombre}")
     }
 
     suspend fun deleteTent(id: String) {
@@ -297,7 +299,7 @@ class AppRepository(
         val safeRate = if (config.exchangeRate.isFinite()) config.exchangeRate.coerceAtLeast(0.0) else 0.0
         settings.save(
             config.copy(
-                businessName = config.businessName.trim(),
+                businessName = com.elspot.toldos.domain.capitalizeWords(config.businessName),
                 rif = com.elspot.toldos.domain.formatVenezuelanDocument(config.rif),
                 phone = com.elspot.toldos.domain.formatVenezuelanPhone(config.phone),
                 exchangeRate = safeRate

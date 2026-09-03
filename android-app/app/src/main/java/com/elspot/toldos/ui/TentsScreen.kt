@@ -8,7 +8,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import com.elspot.toldos.domain.capitalizeWords
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -151,7 +153,7 @@ private fun TentRow(
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(tent.nombre, fontWeight = FontWeight.SemiBold)
+                    Text(capitalizeWords(tent.nombre), fontWeight = FontWeight.SemiBold)
                     StatusBadge(TentStatus.from(tent.estado))
                 }
                 if (tent.tamano.isNotBlank()) {
@@ -225,6 +227,7 @@ private fun TentFormDialog(
                     onValueChange = { name = it },
                     label = { Text("Nombre del toldo *") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -293,7 +296,7 @@ private fun TentFormDialog(
                     name.trim().isBlank() -> error = "El nombre es obligatorio."
                     com.elspot.toldos.domain.parseDollarCents(tariff) == null || com.elspot.toldos.domain.parseDollarCents(tariff12h) == null -> error = "Indica precios válidos para 12 y 24 horas."
                     units.toIntOrNull()?.let { it < 1 } != false -> error = "Las unidades deben ser un número mayor que 0."
-                    else -> onSave(TentFormValues(name, size, tariff, tariff12h, units, status, notes))
+                    else -> onSave(TentFormValues(capitalizeWords(name), size, tariff, tariff12h, units, status, notes))
                 }
             }) { Text("Guardar") }
         }

@@ -147,7 +147,7 @@ class BackupManager(private val context: Context, private val repository: AppRep
             val item = clientsJson.optJSONObject(i) ?: continue
             clients += ClienteEntity(
                 id = item.optString("id").ifBlank { UUID.randomUUID().toString() },
-                nombre = item.optString("nombre", "Cliente"),
+                nombre = com.elspot.toldos.domain.capitalizeWords(item.optString("nombre", "Cliente")),
                 cedula = item.optString("cedula"),
                 telefono = item.optString("telefono"),
                 email = item.optString("email"),
@@ -163,7 +163,7 @@ class BackupManager(private val context: Context, private val repository: AppRep
             val item = tentsJson.optJSONObject(i) ?: continue
             tents += ToldoEntity(
                 id = item.optString("id").ifBlank { UUID.randomUUID().toString() },
-                nombre = item.optString("nombre", "Toldo"),
+                nombre = com.elspot.toldos.domain.capitalizeWords(item.optString("nombre", "Toldo")),
                 tamano = item.optString("tamano"),
                 tarifaCents = amountToCents(item, "tarifa"),
                 tarifa12hCents = item.optDouble("tarifa12h", item.optDouble("tarifa", 0.0) / 2.0).let { (it * 100.0).roundToLong() },
@@ -246,7 +246,7 @@ class BackupManager(private val context: Context, private val repository: AppRep
         val configJson = data.optJSONObject("config") ?: JSONObject()
         val business = configJson.optJSONObject("negocio") ?: JSONObject()
         val config = ConfigSnapshot(
-            businessName = business.optString("nombre", "EL SPOT").trim().ifBlank { "EL SPOT" },
+            businessName = com.elspot.toldos.domain.capitalizeWords(business.optString("nombre", "EL SPOT").trim().ifBlank { "EL SPOT" }),
             rif = business.optString("rif"),
             phone = business.optString("telefono"),
             address = business.optString("direccion"),

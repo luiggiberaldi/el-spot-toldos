@@ -18,6 +18,7 @@ import com.elspot.toldos.data.RentalMode
 import com.elspot.toldos.data.RentalStatus
 import com.elspot.toldos.data.ReceiptPaymentStatus
 import com.elspot.toldos.data.ReceiptSnapshot
+import com.elspot.toldos.domain.capitalizeWords
 import com.elspot.toldos.domain.formatVenezuelanDocument
 import com.elspot.toldos.domain.formatVenezuelanPhone
 import com.elspot.toldos.data.TentStatus
@@ -102,7 +103,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (name.trim().isBlank()) return fail("El nombre del cliente es obligatorio.")
         val entity = ClienteEntity(
             id = existing?.id ?: UUID.randomUUID().toString(),
-            nombre = name.trim(),
+            nombre = capitalizeWords(name),
             cedula = formatVenezuelanDocument(document),
             telefono = formatVenezuelanPhone(phone),
             email = existing?.email.orEmpty(),
@@ -133,7 +134,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (parsedUnits == null || parsedUnits < 1) return fail("Las unidades deben ser un número mayor que 0.")
         val entity = ToldoEntity(
             id = existing?.id ?: UUID.randomUUID().toString(),
-            nombre = name.trim(),
+            nombre = capitalizeWords(name),
             tamano = size.trim(),
             tarifaCents = cents,
             tarifa12hCents = cents12h,
@@ -230,7 +231,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveConfig(config: ConfigSnapshot) {
         runAction("Configuración guardada") {
-            repository.saveConfig(config)
+            repository.saveConfig(config.copy(businessName = capitalizeWords(config.businessName)))
             if (!config.notificationsEnabled) scheduler.cancelAllReminders()
         }
     }
