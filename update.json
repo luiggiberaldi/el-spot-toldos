@@ -1,8 +1,8 @@
 {
-  "versionCode": 3,
-  "versionName": "1.0.2",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.2/el-spot-toldos-1.0.2.apk",
-  "sha256": "70a619dc986446c8f0da9ffce7df030bfdd8dd351e3591790a99a405f5e367da",
-  "notes": "Mejoras de responsividad móvil: sin zoom automático en iOS al enfocar campos, navegación inferior con área segura y sin desplazamiento en pantallas angostas; anulación de recibos con reversión del abono y confirmaciones dentro de la app.",
+  "versionCode": 4,
+  "versionName": "1.0.3",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.3/el-spot-toldos-1.0.3.apk",
+  "sha256": "46df7d8bc10aeeaa013fb270a9b07123225a25f061b57f9886b6c16619491f48",
+  "notes": "Rediseño visual UI/UX de modales Nuevo Toldo y Nuevo Alquiler en pantallas móviles, corrección de textos y estados vacíos informativos en selectores.",
   "mandatory": false
 }
