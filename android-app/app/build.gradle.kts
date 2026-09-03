@@ -49,6 +49,17 @@ android {
         }
     }
 
+    // Nombre canónico de la APK distribuida: el-spot-toldos-<versionName>.apk.
+    // La salida nace con el nombre correcto: es el mismo que usa el asset de la
+    // GitHub Release, el manifiesto update.json del autoupdate y el archivo que
+    // descarga la app en el dispositivo. Evita renombres manuales.
+    applicationVariants.all {
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                .outputFileName = "el-spot-toldos-${versionName}.apk"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

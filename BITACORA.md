@@ -16,6 +16,23 @@
 
 ---
 
+## Nombre de APK — 2026-09-02 — `Cambio`
+
+### Nombre canónico desde el build: el-spot-toldos-<versión>.apk
+
+- La salida de Gradle (`assembleRelease`) ahora nace con el nombre canónico
+  `el-spot-toldos-<versión>.apk` en lugar del genérico `app-release.apk`, mediante
+  `applicationVariants`/`outputFileName` en `build.gradle.kts` (con cast a
+  `BaseVariantOutputImpl`, requerido por AGP 8). Es el mismo nombre del asset de la
+  GitHub Release, del manifiesto `update.json` y del archivo que el autoupdate
+  descarga en el dispositivo (que pasó de `versionCode` a `versionName` en su
+  nombre): el artefacto se llama igual en build local, CI, release y dispositivo.
+- El workflow del CI verifica la ruta con nombre canónico y falla explícitamente si
+  no existe; ya no renombra desde `app-release.apk`.
+- La APK 1.0.2 ya publicada conserva su asset y hash correctos; los cambios afectan
+  el nombre de las futuras compilaciones. Firma verificada intacta (mismo
+  certificado) y suite completa de pruebas en verde.
+
 ## Auditoría autoupdate — 2026-09-02 — `Nuevo`
 
 ### Verificación de fallos elegantes: 404 del manifiesto y SHA-256 incorrecto

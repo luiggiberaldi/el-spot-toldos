@@ -37,7 +37,8 @@ class UpdateCheckWorker(
 
     private fun downloadAndNotify(update: AppUpdate, manual: Boolean): Result {
         val directory = File(applicationContext.filesDir, UPDATE_DIRECTORY).apply { mkdirs() }
-        val target = File(directory, "el-spot-toldos-${update.versionCode}.apk")
+        // Mismo nombre canónico que la release y update.json: el-spot-toldos-<versionName>.apk
+        val target = File(directory, "el-spot-toldos-${update.versionName}.apk")
         return runCatching {
             GithubUpdateClient().download(update, target)
             showUpdateReady(update, target)

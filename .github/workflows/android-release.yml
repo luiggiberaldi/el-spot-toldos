@@ -136,7 +136,11 @@ jobs:
           VERSION: ${{ steps.puerta.outputs.version }}
         run: |
           set -euo pipefail
-          APK=android-app/app/build/outputs/apk/release/app-release.apk
+          # La APK nace con el nombre canónico (applicationVariants en
+          # build.gradle.kts): el-spot-toldos-<versionName>.apk, el mismo que
+          # usa el asset de la release y update.json.
+          APK="android-app/app/build/outputs/apk/release/el-spot-toldos-${VERSION}.apk"
+          test -f "$APK" || { echo "::error::No se encontró $APK"; exit 1; }
           BUILD_TOOLS="$ANDROID_HOME/build-tools"
           AAPT="$(ls -d "$BUILD_TOOLS"/*/ | sort -V | tail -n 1)aapt"
           APKSIGNER="$(ls -d "$BUILD_TOOLS"/*/ | sort -V | tail -n 1)apksigner"

@@ -104,6 +104,7 @@ Comprobación manual en un dispositivo (APK sobre APK):
 Comportamiento:
 
 - **Puerta de versión**: `scripts/version_utils.mjs debe-publicar` compara el `versionName` del build contra el tag `vX.Y.Z` más alto publicado; solo continúa si es mayor. Pushes que tocan el build sin subir versión (o commits anteriores ya publicados) terminan en "omitir" sin error.
+- **Nombre canónico**: la APK nace con el nombre `el-spot-toldos-<versión>.apk` (configurado en `build.gradle.kts` vía `applicationVariants`), el mismo del asset de la GitHub Release, de `update.json` y del archivo que la app descarga en el dispositivo — no hay renombres manuales.
 - **Compilación reproducible**: usa el **Gradle wrapper** (`android-app/gradlew`, Gradle 9.3.1, JDK 17), así el CI y las máquinas locales compilan con la misma versión exacta.
 - **Firma**: el CI decodifica el secret `RELEASE_KEYSTORE_BASE64` (keystore completa en Base64) a `~/.android/debug.keystore` y compila con el mismo certificado que la app instalada — **la actualización en sitio conserva los datos**. `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` y `RELEASE_KEY_PASSWORD` son opcionales y por defecto usan `android` / `androiddebugkey` / `android` (el keystore de depuración de este equipo).
 - **Verificación**: el flujo corre `assembleRelease` + `testDebugUnitTest`, valida la firma con `apksigner verify`, sube la APK como artefacto (30 días) y publica la GitHub Release `v<versión>` con el asset `el-spot-toldos-<versión>.apk`.
