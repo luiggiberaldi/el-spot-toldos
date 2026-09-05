@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "1.0.8",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.8/el-spot-toldos-1.0.8.apk",
-  "sha256": "d79cdc681cf4920482273d3c3d8c08a28176dcaa0aa1f39ad6ad800aa0711d3f",
+  "versionCode": 10,
+  "versionName": "1.0.9",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.9/el-spot-toldos-1.0.9.apk",
+  "sha256": "f90dad18859138bf6a143439ba2b633622a7a011d774d4be9b7b2be9941fb961",
   "notes": "Mejoras del flujo de cobro: el abono del alquiler se rellena con un toque (botones Total, Mitad y Limpiar) y, cuando el alquiler ya está saldado, el recibo deja de pedir monto y documenta el abono recibido como comprobante.",
   "mandatory": false
 }
