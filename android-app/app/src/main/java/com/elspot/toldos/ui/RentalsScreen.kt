@@ -596,7 +596,15 @@ private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewMod
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
                 )
                 OutlinedTextField(concept, { concept = it }, label = { Text("Concepto") }, minLines = 2)
-                ChoiceField("Estado del recibo", paymentStatus, listOf(ReceiptPaymentStatus.PAID to "Pagado · registrar como abono", ReceiptPaymentStatus.DUE to "Por pagar · no registrar abono"), { paymentStatus = it })
+                // Cuando el alquiler ya está saldado, emitir un comprobante no debe leerse como "Por pagar".
+                ChoiceField(
+                    "Estado del recibo", paymentStatus,
+                    listOf(
+                        ReceiptPaymentStatus.PAID to "Pagado · registrar como abono",
+                        ReceiptPaymentStatus.DUE to if (balance <= 0L) "Comprobante · alquiler ya saldado" else "Por pagar · no registrar abono"
+                    ),
+                    { paymentStatus = it }
+                )
                 if (amountCents > 0) Text("Se emitirá: ${formatDual(amountCents, state.config)}", fontWeight = FontWeight.Bold)
             }
         },

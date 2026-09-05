@@ -16,6 +16,23 @@
 
 ---
 
+## v1.0.8 — 2026-09-05 — `Mejora`
+
+### Recibo inteligente: el PDF reconoce cuándo el pago deja el alquiler saldado
+
+- El recuadro del monto del recibo PDF era estático ("MONTO A CANCELAR" siempre)
+  aunque el pago liquidara el alquiler por completo. Ahora es contextual en APK y PWA:
+  si el abono posterior al recibo cubre el total, muestra "ALQUILER PAGADO" (o "MONTO
+  CANCELADO · ALQUILER SALDADO" en pagos parciales que dejan cero), el monto se
+  destaca en verde y los sellos del encabezado/pie/WhatsApp leen PAGADO. Si queda
+  saldo, conserva "MONTO A CANCELAR" y POR PAGAR.
+- La detección usa el abono posterior al recibo, que el repositorio/store ya congela
+  en el snapshot al emitir (rentalDepositCents / datos.alquiler.abono), por lo que los
+  recibos históricos conservan su estado original.
+- Diálogo de emisión en APK: la opción de comprobante sobre un alquiler ya saldado
+  se etiqueta "Comprobante · alquiler ya saldado" en vez de "Por pagar".
+- Validado: compilación APK y suite web (typecheck + 58 pruebas) en verde.
+
 ## v1.0.7 — 2026-09-05 — `Corrección`
 
 ### Contraste y jerarquía profesional en el recuadro MONTO A CANCELAR del PDF

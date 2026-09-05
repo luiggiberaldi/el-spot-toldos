@@ -132,7 +132,7 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   const moneda = datos.negocio.moneda;
   doc.setFillColor(...COLOR_PAGINA);
   doc.rect(0, 0, ANCHO_PAGINA, ALTO_PAGINA, 'F');
-  const estadoPagado = datos.estado === 'pagado';
+  const estadoPagado = datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal);
 
   // Cabecera clara con el logo exclusivo del PDF centrado.
   const altoHeader = 49;
@@ -251,8 +251,14 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   const anchoPago = ANCHO_CONTENIDO - anchoResumen - 6;
   doc.setFillColor(32, 91, 132);
   doc.roundedRect(xPago, y, anchoPago, altoResumen, 2.5, 2.5, 'F');
-  texto(doc, 'MONTO A CANCELAR', xPago + 7, y + 10, { size: 7.5, color: [170, 210, 240], bold: true });
-  texto(doc, formatearMonto(datos.monto, moneda), xPago + 7, y + 23, { size: 16, color: [255, 255, 255], bold: true });
+  // Etiqueta inteligente: el abono de datos.alquiler ya es el POSTERIOR al recibo (lo fija emitirRecibo);
+  // si este pago deja el alquiler saldado, el recuadro lo comunica y el monto se muestra en verde.
+  const saldado = datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal;
+  const etiquetaRecuadro = saldado
+    ? datos.monto >= datos.alquiler.montoTotal ? 'ALQUILER PAGADO' : 'MONTO CANCELADO · ALQUILER SALDADO'
+    : 'MONTO A CANCELAR';
+  texto(doc, etiquetaRecuadro, xPago + 7, y + 10, { size: 7.5, color: [170, 210, 240], bold: true });
+  texto(doc, formatearMonto(datos.monto, moneda), xPago + 7, y + 23, { size: 16, color: saldado ? [134, 239, 172] : [255, 255, 255], bold: true });
   const equivalente = formatearBsEquivalente(datos.monto, datos.negocio.tasaBs);
   if (equivalente) {
     texto(doc, `${equivalente} · ${formatearMonto(datos.negocio.tasaBs, 'Bs')} por 1 $`, xPago + 7, y + 31, { size: 7.5, color: [190, 202, 216] });

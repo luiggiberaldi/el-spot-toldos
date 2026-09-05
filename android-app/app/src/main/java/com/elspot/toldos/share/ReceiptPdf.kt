@@ -11,6 +11,7 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.elspot.toldos.data.ReceiptPaymentStatus
 import com.elspot.toldos.data.ReceiptSnapshot
 import com.elspot.toldos.domain.capitalizeWords
 import com.elspot.toldos.domain.centsToBolivarText
@@ -104,10 +105,19 @@ class ReceiptPdfService(private val context: Context) {
         val summaryHeight = 126f
         val summaryWidth = 235f
         val paymentWidth = contentWidth - summaryWidth - 12f
+        // Etiqueta inteligente: el recuadro refleja si este pago deja el alquiler saldado.
+        // snapshot.rentalDepositCents ya trae el abono POSTERIOR al recibo (lo fija el repositorio al emitir).
+        val paidInFull = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
+        val boxLabel = when {
+            paidInFull && snapshot.amountCents >= snapshot.rentalTotalCents -> "ALQUILER PAGADO"
+            paidInFull -> "MONTO CANCELADO · ALQUILER SALDADO"
+            else -> "MONTO A CANCELAR"
+        }
+        val amountColor = if (paidInFull) android.graphics.Color.rgb(134, 239, 172) else android.graphics.Color.WHITE
         paint.color = darkBlue
         canvas.drawRoundRect(RectF(margin, summaryTop, margin + paymentWidth, summaryTop + summaryHeight), 7f, 7f, paint)
-        drawText(canvas, paint, "MONTO A CANCELAR", margin + 15f, summaryTop + 27f, 9f, lightBlue, true)
-        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 15f, summaryTop + 65f, 20f, android.graphics.Color.WHITE, true)
+        drawText(canvas, paint, boxLabel, margin + 15f, summaryTop + 27f, 9f, lightBlue, true)
+        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 15f, summaryTop + 65f, 20f, amountColor, true)
         val bs = centsToBolivarText(snapshot.amountCents, snapshot.exchangeRate)
         if (bs.isNotBlank()) {
             drawText(canvas, paint, "$bs · ${exchangeRateText(snapshot.exchangeRate)}", margin + 15f, summaryTop + 95f, 9f, lightGray)
@@ -121,8 +131,11 @@ class ReceiptPdfService(private val context: Context) {
         drawAmountRow(canvas, paint, "Pendiente", centsToDollarText(balance), rightX, summaryTop + 93f, if (balance > 0) android.graphics.Color.rgb(190, 65, 30) else android.graphics.Color.rgb(22, 130, 90), true)
         y = summaryTop + summaryHeight + 25f
 
-        val stateColor = if (snapshot.paymentStatus.name == "PAID") android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
-        drawText(canvas, paint, snapshot.paymentStatus.label.uppercase(), margin, y, 11f, stateColor, true)
+        // El sello de pie acompaña la semántica del recuadro: si este recibo salda el alquiler, se muestra PAGADO.
+        val settledHere = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
+        val footStatus = if (settledHere) ReceiptPaymentStatus.PAID else snapshot.paymentStatus
+        val stateColor = if (footStatus == ReceiptPaymentStatus.PAID) android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
+        drawText(canvas, paint, footStatus.label.uppercase(), margin, y, 11f, stateColor, true)
         drawText(canvas, paint, "Cliente: ${snapshot.clientName.ifBlank { "—" }}", pageWidth - margin, y, 10f, text, true, true)
         y += 21f
         drawText(canvas, paint, "Concepto: ${snapshot.concept.ifBlank { "Pago del alquiler" }}", margin, y, 9f, muted)
@@ -204,8 +217,10 @@ class ReceiptPdfService(private val context: Context) {
         }
         drawText(canvas, paint, "RECIBO N° ${snapshot.folio}", pageWidth - margin, 31f, 15f, text, true, true)
         drawText(canvas, paint, "Emitido el ${formatDateTime(snapshot.emittedAt)}", pageWidth - margin, 53f, 9.5f, muted, false, true)
-        val stateColor = if (snapshot.paymentStatus.name == "PAID") android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
-        drawText(canvas, paint, snapshot.paymentStatus.label.uppercase(), pageWidth - margin, 77f, 11f, stateColor, true, true)
+        // Sello del encabezado coherente con el estado del alquiler tras este recibo.
+        val headerStatus = if (snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents) ReceiptPaymentStatus.PAID else snapshot.paymentStatus
+        val stateColor = if (headerStatus == ReceiptPaymentStatus.PAID) android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
+        drawText(canvas, paint, headerStatus.label.uppercase(), pageWidth - margin, 77f, 11f, stateColor, true, true)
         return 135f
     }
 
@@ -282,7 +297,9 @@ class ReceiptPdfService(private val context: Context) {
         return buildString {
             appendLine(capitalizeWords(snapshot.businessName.ifBlank { "EL SPOT" }))
             appendLine("Recibo N° ${snapshot.folio}")
-            appendLine("Estado: ${snapshot.paymentStatus.label.uppercase()}")
+            val settled = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
+            val estadoTexto = (if (settled) ReceiptPaymentStatus.PAID else snapshot.paymentStatus).label.uppercase()
+            appendLine("Estado: $estadoTexto")
             appendLine("Hola ${capitalizeWords(snapshot.clientName)},")
             appendLine("Adjuntamos el recibo correspondiente a tu alquiler de toldo.")
             appendLine("Modalidad: ${snapshot.mode.label}")

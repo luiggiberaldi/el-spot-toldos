@@ -7,7 +7,7 @@ export function textoReciboWhatsApp(datos: DatosRecibo): string {
   const lineas = [
     `🧾 *${datos.negocio.nombre}*`,
     `Recibo N° ${datos.folio}`,
-    `Estado: ${datos.estado === 'pagado' ? 'PAGADO' : 'POR PAGAR'}`,
+    `Estado: ${datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal) ? 'PAGADO' : 'POR PAGAR'}`,
     `Fecha: ${formatearFechaHora(datos.emitidoEn)}`,
     '',
     `Cliente: ${datos.cliente.nombre}`,
