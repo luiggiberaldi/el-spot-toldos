@@ -1,8 +1,8 @@
 {
-  "versionCode": 6,
-  "versionName": "1.0.5",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.5/el-spot-toldos-1.0.5.apk",
-  "sha256": "5f0ef86e428dafb9d6f10030b30c13813dac053f9b4a75549c1eb103af424863",
+  "versionCode": 7,
+  "versionName": "1.0.6",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.6/el-spot-toldos-1.0.6.apk",
+  "sha256": "920aab78aec4d61a0e7b50197b54dd28c0033aebc3decfd9de9070233445ce45",
   "notes": "Acceso directo a Google Maps desde alquileres y detalles, captura de ubicación manual con extractor inteligente de coordenadas y enlaces de Maps, capitalización automática de nombres (clientes, toldos y negocio) y corrección de tarifa en alquileres de 12 horas.",
   "mandatory": false
 }
