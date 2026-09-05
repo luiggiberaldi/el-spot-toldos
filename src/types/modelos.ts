@@ -59,7 +59,7 @@ export interface Alquiler {
   folio: string;
   clienteId: string;
   items: ItemAlquiler[];
-  /** Modalidad de duración: 12 horas o 24 horas. La tarifa base es por 24h; 12h = mitad. */
+  /** Modalidad de duración: 12 horas o 24 horas. 12h usa el precio 12 h de cada toldo (por defecto, la mitad de la base 24 h). */
   modalidad: ModalidadAlquiler;
   /** Campos legacy (alquileres antiguos con fechas); opcionales por compatibilidad. */
   fechaInicio?: string;

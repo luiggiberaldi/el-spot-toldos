@@ -5,16 +5,26 @@ import com.elspot.toldos.data.RentalMode
 import com.elspot.toldos.data.RentalStatus
 import com.elspot.toldos.data.TentStatus
 import com.elspot.toldos.data.ToldoEntity
-import kotlin.math.roundToLong
 
-/** Tarifa efectiva de respaldo cuando no existe tarifa de 12 horas configurada (la mitad de la base de 24h). */
-fun effectiveTariffCents(baseCents: Long, mode: RentalMode): Long =
-    if (mode == RentalMode.H12) (baseCents / 2.0).roundToLong() else baseCents
+/** Tarifa efectiva de una línea de alquiler. */
+fun effectiveTariffCents(baseCents: Long, mode: RentalMode = RentalMode.H24): Long = baseCents
 
 /** Total calculado desde las líneas del alquiler. Cada línea ya contiene la tarifa unitaria correspondiente a la modalidad seleccionada. */
 fun calculateRentalTotal(items: List<com.elspot.toldos.data.RentalItemDraft>, mode: RentalMode = RentalMode.H24): Long {
     return items.sumOf { it.tariffCents * it.quantity.toLong() }
 }
+
+/**
+ * Detecta la firma del "doble 50 %" que v1.0.4 y anteriores persistían en alquileres 12 h:
+ * `montoTotalCents = round(Σ líneas / 2)`. Al ser la suma siempre el valor correcto, esta
+ * firma solo puede provenir de ese error (el total nunca se edita a mano).
+ *
+ * Espejo Kotlin de la migración `MIGRATION_4_5` (AppDatabase.kt); mantener ambos en sincronía.
+ * Se usa al restaurar respaldos creados con versiones viejas, donde la migración no corre
+ * porque la base se crea ya en la versión actual.
+ */
+fun totalH12ConDobleMitad(modalidad: String, storedTotalCents: Long, linesTotalCents: Long): Boolean =
+    RentalMode.from(modalidad) == RentalMode.H12 && storedTotalCents == (linesTotalCents + 1) / 2
 
 /**
  * Devuelve el primer error de un alquiler o null cuando el borrador es válido.

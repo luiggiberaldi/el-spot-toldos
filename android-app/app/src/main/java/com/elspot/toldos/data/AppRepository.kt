@@ -2,6 +2,7 @@ package com.elspot.toldos.data
 
 import androidx.room.withTransaction
 import com.elspot.toldos.domain.calculateRentalTotal
+import com.elspot.toldos.domain.totalH12ConDobleMitad
 import com.elspot.toldos.domain.validateRentalDraft
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -353,7 +354,21 @@ class AppRepository(
             log.deleteAll()
             snapshot.clients.forEach { clients.insert(it) }
             snapshot.tents.forEach { tents.insert(it) }
-            snapshot.rentals.forEach { rentals.insert(it) }
+            // Reconciliación equivalente a MIGRATION_4_5: un respaldo viejo (v1.0.4-) puede
+            // traer totales 12 h con el doble 50 %; la migración no corre al restaurar porque
+            // la base ya se abre en la versión actual, así que se corrigen antes de insertar.
+            val lineSums = snapshot.rentalItems
+                .groupBy { it.alquilerId }
+                .mapValues { (_, items) -> items.sumOf { it.cantidad.toLong() * it.tarifaCents } }
+            val rentalsToInsert = snapshot.rentals.map { rental ->
+                val sum = lineSums[rental.id] ?: 0L
+                if (totalH12ConDobleMitad(rental.modalidad, rental.montoTotalCents, sum)) {
+                    rental.copy(montoTotalCents = sum)
+                } else {
+                    rental
+                }
+            }
+            rentalsToInsert.forEach { rentals.insert(it) }
             rentals.insertItems(snapshot.rentalItems)
             snapshot.receipts.forEach { receipts.insert(it) }
             snapshot.log.forEach { log.insert(it) }
@@ -375,12 +390,10 @@ class AppRepository(
     }
 
     companion object {
-        fun effectiveTariff(baseCents: Long, mode: RentalMode): Long =
-            if (mode == RentalMode.H12) (baseCents / 2.0).roundToLong() else baseCents
+        fun effectiveTariff(baseCents: Long, mode: RentalMode = RentalMode.H24): Long = baseCents
 
-        fun calculateTotal(items: List<RentalItemDraft>, mode: RentalMode): Long {
-            val subtotal = items.sumOf { it.tariffCents * it.quantity.toLong() }
-            return effectiveTariff(subtotal, mode)
+        fun calculateTotal(items: List<RentalItemDraft>, mode: RentalMode = RentalMode.H24): Long {
+            return items.sumOf { it.tariffCents * it.quantity.toLong() }
         }
     }
 }

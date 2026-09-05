@@ -16,6 +16,41 @@
 
 ---
 
+## v1.0.6 — 2026-09-05 — `Corrección`
+
+### Reparación segura de tarifas 12 h: migración única, sin doble división y regla documentada
+
+**Contexto.** El precio 12 h de un toldo es configurable y es lo que se cobra en esa
+modalidad (p. ej. 24 h $7,50 / 12 h $7,50 → alquiler 12 h = $7,50). Si el toldo no tiene
+precio 12 h, se rellena con el 50 % del precio de 24 h al guardarlo. La UI y la suma de
+líneas ya respetaban esa regla; el error reportado (mostraba $3,75 y debía decir $7,50)
+venía de datos históricos: v1.0.4 y anteriores persistían `montoTotalCents = round(Σ líneas / 2)`
+en alquileres 12 h (doble 50 %, corregido hacia adelante en v1.0.5, commit `1928ead`).
+
+- **`MIGRATION_4_5` reescrita y única (esquema 4→5, sin `onOpen`).** Antes duplicaba
+  líneas con `tarifaCents = 375`, rellenaba `toldos.tarifa12hCents` y corregía solo el
+  caso mágico 375/750; además corría en `onOpen` (cada apertura). Ahora solo reconcilia
+  `alquileres.montoTotalCents` de alquileres 12 h (cualquier variante de `modalidad`
+  legada) cuya firma coincide exactamente con el viejo doble 50 %: total = mitad
+  redondeada de la suma de sus propias líneas. General (toldos de $10,00 incluidos),
+  idempotente y con guarda de versión: corre una sola vez por dispositivo al migrar.
+- **No toca datos legítimos.** No modifica `toldos` (un 12 h NULL o de 50 % es un precio
+  válido por regla), ni `alquiler_items` (la línea congela la tarifa pactada), ni
+  `recibos` (documentos con snapshot financiero). Verificado contra SQLite real con los
+  linajes: caso reportado 375→750 ✓, toldo sin 12 h 188→375 ✓, 24 h de $3,75 intacto ✓,
+  ya consistente intacto ✓, multi-línea ✓.
+- **Restaurar respaldos viejos.** Como la migración no corre al importar (la base se
+  crea ya en la versión actual), `replaceAll` ahora aplica la misma reconciliación en
+  Kotlin vía el helper puro `totalH12ConDobleMitad` (RentalRules.kt, con pruebas JVM;
+  la migración SQL es su espejo).
+- **Regla coherente en todo el sistema.** Se reinstauró el comportamiento "12 h sin
+  precio configurado = 50 % del precio 24 h" en los fallbacks de APK y PWA (sin volver
+  a dividir los totales: `factorModalidad` sigue en 1); se alinearon textos de UI,
+  comentarios de tipos y la documentación (`android-app/README.md`, `docs/MANUAL_DE_USO.md`,
+  `docs/MODULOS.md`) con la regla real.
+- Validado: suite Android `testDebugUnitTest` en verde (incluye nuevos casos de
+  `totalH12ConDobleMitad`) y suite web (typecheck + 58 pruebas) en verde.
+
 ## Nombre de APK — 2026-09-02 — `Cambio`
 
 ### Nombre canónico desde el build: el-spot-toldos-<versión>.apk

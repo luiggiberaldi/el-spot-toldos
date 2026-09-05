@@ -572,13 +572,13 @@ function FormularioAlquiler({
             alCambiar={cambiarModalidad}
             obligatorio
             opciones={[
-              { valor: '24h', etiqueta: '24 horas (tarifa completa)' },
-              { valor: '12h', etiqueta: '12 horas (mitad de tarifa)' }
+              { valor: '24h', etiqueta: '24 horas' },
+              { valor: '12h', etiqueta: '12 horas' }
             ]}
           />
           {modalidad === '12h' && (
             <p className="mt-1 text-xs text-marca-400">
-              La modalidad de 12 horas cobra la mitad de la tarifa base de cada toldo.
+              Cada toldo define su precio de 12 horas; si no quedó configurado, se usa la mitad del precio de 24 h.
             </p>
           )}
         </div>

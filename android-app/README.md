@@ -48,7 +48,7 @@ La Bitácora fue retirada de la navegación y no tiene pantalla visible. Sus reg
 
 ## Funciones
 
-- Alquileres de 12 y 24 horas; 12 horas aplica la mitad de la tarifa base.
+- Alquileres de 12 y 24 horas; 12 horas cobra el precio 12 h del toldo (si no quedó configurado, equivale al 50 % del precio de 24 h).
 - Inventario por unidades, con bloqueo de sobreasignación y estados operativos.
 - Dirección manual y captura GPS con enlace al mapa.
 - Moneda principal `$` y equivalente Bs mediante tasa manual.

@@ -7,6 +7,7 @@ import com.elspot.toldos.data.RentalStatus
 import com.elspot.toldos.data.TentStatus
 import com.elspot.toldos.data.ToldoEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,6 +47,24 @@ class RentalRulesTest {
     fun calculateRentalTotalSumsAllItemLines() {
         assertEquals(20_000L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 2, 10_000L)), RentalMode.H24))
         assertEquals(7_500L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 1, 7_500L)), RentalMode.H12))
+        assertEquals(7_500L, effectiveTariffCents(7_500L, RentalMode.H12))
+        assertEquals(7_500L, effectiveTariffCents(7_500L, RentalMode.H24))
+    }
+
+    @Test
+    fun totalH12ConDobleMitadDetectaSoloLaFirmaDelError() {
+        // Caso real reportado: toldo 24h $7,50 con precio 12h $7,50 guardado; v1.0.4 persistió 375.
+        assertTrue(totalH12ConDobleMitad("H12", 375L, 750L))
+        // Caso general (sin el valor mágico 375): toldo de $10,00 alquilado 12h.
+        assertTrue(totalH12ConDobleMitad("H12", 500L, 1_000L))
+        // Línea a mitad de base (toldo sin precio 12h): total correcto 375 sobre línea 375 → no es firma del error.
+        assertFalse(totalH12ConDobleMitad("H12", 375L, 375L))
+        // Ya consistente o modalidad 24h nunca se toca.
+        assertFalse(totalH12ConDobleMitad("H12", 750L, 750L))
+        assertFalse(totalH12ConDobleMitad("H24", 375L, 750L))
+        assertFalse(totalH12ConDobleMitad("H12", 400L, 750L))
+        // Total impares redondeados como round(Σ/2) (188 para Σ=375).
+        assertTrue(totalH12ConDobleMitad("H12", 188L, 375L))
     }
 
     @Test

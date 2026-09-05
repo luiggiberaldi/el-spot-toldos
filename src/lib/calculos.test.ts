@@ -66,8 +66,8 @@ describe('factorModalidad', () => {
     expect(factorModalidad('24h')).toBe(1);
   });
 
-  it('la modalidad 12h cobra la mitad', () => {
-    expect(factorModalidad('12h')).toBe(0.5);
+  it('la modalidad 12h no divide automáticamente la tarifa', () => {
+    expect(factorModalidad('12h')).toBe(1);
   });
 });
 
@@ -76,13 +76,13 @@ describe('calcularMontoModalidad', () => {
     expect(calcularMontoModalidad(200, '24h')).toBe(200);
   });
 
-  it('aplica la mitad en modalidad 12h', () => {
-    expect(calcularMontoModalidad(200, '12h')).toBe(100);
+  it('mantiene el subtotal calculado en modalidad 12h', () => {
+    expect(calcularMontoModalidad(200, '12h')).toBe(200);
   });
 
-  it('redondea correctamente con tarifas impares', () => {
-    expect(calcularMontoModalidad(150, '12h')).toBe(75);
-    expect(calcularMontoModalidad(149, '12h')).toBe(74.5);
+  it('redondea correctamente montos con decimales', () => {
+    expect(calcularMontoModalidad(150.5, '12h')).toBe(150.5);
+    expect(calcularMontoModalidad(149.99, '12h')).toBe(149.99);
   });
 });
 
@@ -95,8 +95,8 @@ describe('precioToldo', () => {
 });
 
 describe('tarifaEfectiva', () => {
-  it('devuelve la tarifa base en 24h y la mitad en 12h', () => {
+  it('devuelve la tarifa asignada a la línea en cualquier modalidad', () => {
     expect(tarifaEfectiva(200, '24h')).toBe(200);
-    expect(tarifaEfectiva(200, '12h')).toBe(100);
+    expect(tarifaEfectiva(200, '12h')).toBe(200);
   });
 });

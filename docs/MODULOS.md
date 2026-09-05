@@ -40,7 +40,7 @@ Archivo: `src/modules/toldos/Toldos.tsx`.
 Archivo: `src/modules/alquileres/Alquileres.tsx`.
 
 - Selecciona cliente y uno o más toldos con cantidad.
-- Usa modalidad de **12 horas** o **24 horas**; 12 horas aplica la mitad de la tarifa base.
+- Usa modalidad de **12 horas** o **24 horas**; 12 horas cobra el precio 12 h del toldo (si no quedó configurado, el 50 % del precio de 24 h).
 - Captura dirección manual y ubicación GPS, con coordenadas y enlace al mapa.
 - Calcula subtotal, total, abono y pendiente de pago en dólares y Bs.
 - Bloquea clientes inexistentes, toldos no disponibles, duplicados, cantidades inválidas, GPS parcial y totales manipulados.

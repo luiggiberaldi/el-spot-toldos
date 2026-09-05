@@ -38,8 +38,8 @@ El estado **Alquilado** no se selecciona manualmente: aparece automáticamente c
 2. Selecciona el cliente.
 3. Agrega uno o más toldos, cantidad y tarifa.
 4. Elige una modalidad:
-   - **12 horas:** aplica la mitad de la tarifa base.
-   - **24 horas:** aplica la tarifa completa.
+   - **12 horas:** cobra el precio de 12 horas del toldo. Si el toldo no tiene precio de 12 horas configurado, equivale al 50 % del precio de 24 horas.
+   - **24 horas:** cobra la tarifa base (24 horas).
 5. Escribe la dirección del evento o captura la ubicación con **Capturar ubicación GPS**.
 6. Revisa total, abono y pendiente de pago.
 7. Selecciona el estado inicial y pulsa **Guardar alquiler**.

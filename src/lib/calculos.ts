@@ -34,28 +34,29 @@ export function redondearMonto(monto: number): number {
 }
 
 /**
- * Factor de precio según la modalidad.
- * La tarifa base es por 24 horas; la modalidad de 12 horas cobra la mitad.
+ * Las líneas ya llevan el precio de su modalidad (12 h configurado, o 50 % de la base si el
+ * toldo no lo tiene). El total es la suma de las líneas SIN volver a dividir: la antigua doble
+ * división del 50 % (v1.0.4 web) cobraba la cuarta parte en vez de la mitad.
  */
-export function factorModalidad(modalidad: ModalidadAlquiler): number {
-  return modalidad === '12h' ? 0.5 : 1;
+export function factorModalidad(_modalidad: ModalidadAlquiler): number {
+  return 1;
 }
 
-/** Monto total según la modalidad: subtotal (24h) × factor. */
-export function calcularMontoModalidad(subtotal: number, modalidad: ModalidadAlquiler): number {
-  return redondearMonto(subtotal * factorModalidad(modalidad));
+/** Monto total según la modalidad: subtotal de las líneas ya calculadas. */
+export function calcularMontoModalidad(subtotal: number, _modalidad: ModalidadAlquiler): number {
+  return redondearMonto(subtotal);
 }
 
 /**
- * Obtiene el precio configurado para una modalidad.
- * Mantiene compatibilidad con inventario antiguo que solo tenía tarifa de 24h.
+ * Obtiene el precio configurado para una modalidad. El toldo tiene precio 12 h propio;
+ * si no quedó configurado (inventario antiguo), se usa el 50 % del precio de 24 h.
  */
 export function precioToldo(toldo: { tarifa: number; tarifa12h?: number }, modalidad: ModalidadAlquiler): number {
   if (modalidad === '12h' && toldo.tarifa12h !== undefined) return redondearMonto(toldo.tarifa12h);
   return modalidad === '12h' ? redondearMonto(toldo.tarifa * 0.5) : redondearMonto(toldo.tarifa);
 }
 
-/** Tarifa efectiva histórica de una línea de alquiler. */
-export function tarifaEfectiva(tarifa: number, modalidad: ModalidadAlquiler): number {
-  return redondearMonto(tarifa * factorModalidad(modalidad));
+/** Tarifa efectiva de una línea de alquiler. */
+export function tarifaEfectiva(tarifa: number, _modalidad: ModalidadAlquiler): number {
+  return redondearMonto(tarifa);
 }
