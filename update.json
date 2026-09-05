@@ -3,6 +3,6 @@
   "versionName": "1.0.6",
   "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.6/el-spot-toldos-1.0.6.apk",
   "sha256": "920aab78aec4d61a0e7b50197b54dd28c0033aebc3decfd9de9070233445ce45",
-  "notes": "Reparación de tarifas de 12 horas: corrige alquileres históricos que mostraban la mitad del precio pactado (migración de base de datos única y segura, sin duplicar datos legítimos) y define la regla en toda la app: el precio de 12 horas es configurable por toldo y, si no se define, equivale al 50 % del precio de 24 horas.",
+  "notes": "Corrección del diseño del recibo PDF: el recuadro del monto a cancelar ahora muestra la etiqueta y los montos con el contraste y la jerarquía correctos (etiqueta en azul claro, monto en blanco y equivalente en Bs legible).",
   "mandatory": false
 }

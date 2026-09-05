@@ -16,6 +16,18 @@
 
 ---
 
+## v1.0.7 — 2026-09-05 — `Corrección`
+
+### Contraste y jerarquía profesional en el recuadro MONTO A CANCELAR del PDF
+
+- El recuadro azul del monto del recibo PDF dibujaba la etiqueta "MONTO A
+  CANCELAR" en el mismo color del fondo (invisible), el monto en texto oscuro
+  sobre azul (mal contraste) y a 25 pt desproporcionado.
+- Se replicó el diseño ya probado de la PWA: etiqueta en azul claro, monto en
+  blanco a 20 pt y equivalente en Bs en gris claro.
+- Publicada vía CI como v1.0.7 (versionCode 8); APK local regenerada con la
+  corrección antes del push.
+
 ## v1.0.6 — 2026-09-05 — `Corrección`
 
 ### Reparación segura de tarifas 12 h: migración única, sin doble división y regla documentada
