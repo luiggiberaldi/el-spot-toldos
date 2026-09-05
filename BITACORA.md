@@ -16,6 +16,20 @@
 
 ---
 
+## v1.0.9 — 2026-09-05 — `Mejora`
+
+### Atajos de abono (Total/Mitad) y comprobante sin campo de monto cuando el alquiler está saldado
+
+- Formulario de alquiler (APK): botones **Total**, **Mitad** y **Limpiar** junto al
+  campo Abono rellenan el monto con un toque (total, mitad redondeada a 2 decimales
+  o vacío), evitando tipeos manuales y errores de carga.
+- Diálogo "Emitir recibo" (APK): cuando el pendiente es $0 ya no se muestra el campo
+  editable "Monto a cancelar" (confundía: no hay nada por cobrar); en su lugar se
+  documenta el abono recibido con un texto fijo "Monto del comprobante: $X (abono ya
+  recibido)" y el estado lee "Comprobante · alquiler ya saldado". El PDF resultante
+  mantiene la lógica inteligente (recuadro ALQUILER PAGADO en verde).
+- Validado: compilación Android en verde.
+
 ## v1.0.8 — 2026-09-05 — `Mejora`
 
 ### Recibo inteligente: el PDF reconoce cuándo el pago deja el alquiler saldado

@@ -3,6 +3,6 @@
   "versionName": "1.0.8",
   "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.0.8/el-spot-toldos-1.0.8.apk",
   "sha256": "d79cdc681cf4920482273d3c3d8c08a28176dcaa0aa1f39ad6ad800aa0711d3f",
-  "notes": "Recibo inteligente: el PDF reconoce cuándo el pago deja el alquiler saldado (recuadro y sellos en modo PAGADO con monto en verde) y conserva MONTO A CANCELAR cuando queda saldo pendiente.",
+  "notes": "Mejoras del flujo de cobro: el abono del alquiler se rellena con un toque (botones Total, Mitad y Limpiar) y, cuando el alquiler ya está saldado, el recibo deja de pedir monto y documenta el abono recibido como comprobante.",
   "mandatory": false
 }

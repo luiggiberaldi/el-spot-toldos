@@ -408,6 +408,26 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                         ChoiceField("Estado", status, RentalStatus.entries.map { it to it.label }, { status = it }, modifier = Modifier.weight(1f))
                     }
                 }
+                // Atajos de abono: rellenan el campo con el total o la mitad del alquiler.
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AssistChip(
+                            onClick = { deposit = "%.2f".format(totalCents / 100.0) },
+                            label = { Text("Total") },
+                            enabled = totalCents > 0L
+                        )
+                        AssistChip(
+                            onClick = { deposit = "%.2f".format(totalCents / 200.0) },
+                            label = { Text("Mitad") },
+                            enabled = totalCents > 0L
+                        )
+                        AssistChip(
+                            onClick = { deposit = "" },
+                            label = { Text("Limpiar") },
+                            enabled = deposit.isNotBlank()
+                        )
+                    }
+                }
                 item { OutlinedTextField(notes, { notes = it }, label = { Text("Notas") }, minLines = 2) }
                 item { MoneySummary(totalCents, depositCents, state.config) }
                 item { ErrorMessage(error) }
@@ -575,10 +595,11 @@ private fun RentalDetailDialog(rental: AlquilerEntity, state: AppUiState, viewMo
 @Composable
 private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewModel: AppViewModel, onDismiss: () -> Unit) {
     val balance = (rental.montoTotalCents - rental.abonoCents).coerceAtLeast(0L)
+    val settled = balance <= 0L
     var amount by remember(rental) { mutableStateOf(((if (balance > 0L) balance else rental.abonoCents) / 100.0).toString()) }
     var concept by remember(rental) { mutableStateOf(if (balance > 0L) "Saldo pendiente del alquiler" else "Abono ya recibido del alquiler") }
     var paymentStatus by remember(rental) { mutableStateOf(if (balance > 0L) ReceiptPaymentStatus.PAID else ReceiptPaymentStatus.DUE) }
-    val amountCents = parseDollarCents(amount) ?: 0L
+    val amountCents = if (settled) rental.abonoCents else (parseDollarCents(amount) ?: 0L)
     var createdReceipt by remember { mutableStateOf<com.elspot.toldos.data.ReciboEntity?>(null) }
     LaunchedEffect(Unit) { viewModel.events.collect { event -> if (event is AppEvent.ReceiptCreated && event.receipt.alquilerId == rental.id) createdReceipt = event.receipt } }
     createdReceipt?.let { receipt -> AlertDialog(onDismissRequest = onDismiss, title = { Text("Recibo ${receipt.folio} emitido") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Icon(Icons.Default.TaskAlt, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)); Text("El recibo fue guardado y está listo para compartir por WhatsApp."); Text("Puedes enviar el PDF con el mensaje profesional o compartir solo el resumen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, dismissButton = { Row { TextButton(onClick = { viewModel.shareReceiptWhatsApp(receipt) }) { Icon(Icons.Default.Chat, null); Text("WhatsApp") }; TextButton(onClick = { viewModel.shareReceipt(receipt, true) }) { Text("Mensaje") }; TextButton(onClick = { viewModel.shareReceipt(receipt) }) { Text("PDF") } } }, confirmButton = { Button(onClick = onDismiss) { Text("Cerrar") } }); return }
@@ -588,13 +609,22 @@ private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewMod
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Pendiente actual: ${formatDual(balance, state.config)}", color = MaterialTheme.colorScheme.secondary)
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it.replace(',', '.') },
-                    label = { Text("Monto a cancelar ($)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
-                )
+                if (settled) {
+                    // Alquiler saldado: el recibo documenta el abono recibido; el monto no se edita.
+                    Text(
+                        "Monto del comprobante: ${formatDual(rental.abonoCents, state.config)} (abono ya recibido)",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it.replace(',', '.') },
+                        label = { Text("Monto a cancelar ($)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
+                    )
+                }
                 OutlinedTextField(concept, { concept = it }, label = { Text("Concepto") }, minLines = 2)
                 // Cuando el alquiler ya está saldado, emitir un comprobante no debe leerse como "Por pagar".
                 ChoiceField(
