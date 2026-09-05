@@ -172,6 +172,7 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
     { clave: 'Folio de alquiler', valor: datos.alquiler.folio },
     { clave: 'Modalidad', valor: datos.alquiler.modalidad === '12h' ? '12 horas' : '24 horas' },
     ...(datos.alquiler.direccion ? [{ clave: 'Dirección del evento', valor: datos.alquiler.direccion }] : []),
+    ...(datos.alquiler.referenciaUbicacion ? [{ clave: 'Referencia', valor: datos.alquiler.referenciaUbicacion }] : []),
     ...(datos.alquiler.lat !== undefined && datos.alquiler.lng !== undefined
       ? [{ clave: 'Ubicación GPS', valor: formatearCoordenadas(datos.alquiler.lat, datos.alquiler.lng) }]
       : [])

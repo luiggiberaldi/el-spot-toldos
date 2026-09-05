@@ -73,6 +73,7 @@ class BackupManager(private val context: Context, private val repository: AppRep
                     put("fechaInicio", iso(rental.inicio))
                     put("fechaDevolucion", iso(rental.devolucion))
                     put("direccion", rental.direccion)
+                    put("referenciaUbicacion", rental.referenciaUbicacion)
                     put("lat", rental.latitud ?: JSONObject.NULL)
                     put("lng", rental.longitud ?: JSONObject.NULL)
                     put("montoTotal", rental.montoTotalCents / 100.0)
@@ -210,6 +211,7 @@ class BackupManager(private val context: Context, private val repository: AppRep
                 inicio = start,
                 devolucion = returnAt,
                 direccion = item.optString("direccion"),
+                referenciaUbicacion = item.optString("referenciaUbicacion"),
                 latitud = item.optDoubleOrNull("lat"),
                 longitud = item.optDoubleOrNull("lng"),
                 montoTotalCents = total,

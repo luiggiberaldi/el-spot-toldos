@@ -53,6 +53,44 @@ class ReceiptSnapshotTest {
     }
 
     @Test
+    fun nativeSnapshotRoundTripsEventReference() {
+        val original = ReceiptSnapshot(
+            id = "receipt-2",
+            folio = "REC-0002",
+            rentalFolio = "ALQ-0002",
+            rentalId = "rental-2",
+            emittedAt = 1_700_000_000_000L,
+            concept = "Abono",
+            amountCents = 3_750L,
+            businessName = "EL SPOT",
+            businessRif = "",
+            businessPhone = "",
+            businessAddress = "",
+            exchangeRate = 0.0,
+            logoUri = "",
+            clientName = "Luis",
+            clientDocument = "",
+            clientPhone = "",
+            clientAddress = "",
+            mode = RentalMode.H24,
+            startAt = 1_700_000_000_000L,
+            returnAt = 1_700_008_640_000L,
+            eventAddress = "Av. Puerto Cabello",
+            eventReference = "Casa azul, portón negro",
+            latitude = null,
+            longitude = null,
+            rentalTotalCents = 7_500L,
+            rentalDepositCents = 3_750L,
+            items = listOf(ReceiptItemSnapshot("Toldo 3x3", "3x3 m", 1, 7_500L))
+        )
+
+        val restored = ReceiptSnapshot.fromJson(original.toJson())
+
+        assertNotNull(restored)
+        assertEquals("Casa azul, portón negro", restored?.eventReference)
+    }
+
+    @Test
     fun legacyPwaSnapshotAcceptsLocalIsoDateAndDefaultsMissingModeTo24Hours() {
         val rental = JSONObject()
             .put("folio", "ALQ-0007")

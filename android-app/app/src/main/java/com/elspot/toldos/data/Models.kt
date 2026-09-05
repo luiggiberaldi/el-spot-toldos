@@ -103,6 +103,7 @@ data class RentalDraft(
     val mode: RentalMode = RentalMode.H24,
     val startAt: Long = System.currentTimeMillis(),
     val address: String = "",
+    val locationReference: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
     val totalCents: Long = 0L,
@@ -141,6 +142,8 @@ data class ReceiptSnapshot(
     val startAt: Long,
     val returnAt: Long,
     val eventAddress: String,
+    /** Referencia libre de la ubicación del evento (punto de entrega), opcional. */
+    val eventReference: String = "",
     val latitude: Double?,
     val longitude: Double?,
     val rentalTotalCents: Long,
@@ -171,6 +174,7 @@ data class ReceiptSnapshot(
             .put("startAt", startAt)
             .put("returnAt", returnAt)
             .put("eventAddress", eventAddress)
+            .put("eventReference", eventReference)
             .put("latitude", latitude ?: JSONObject.NULL)
             .put("longitude", longitude ?: JSONObject.NULL)
             .put("rentalTotalCents", rentalTotalCents)
@@ -236,6 +240,7 @@ data class ReceiptSnapshot(
                 startAt = parseStoredTime(root.optString("startAt").ifBlank { root.optString("inicio") }),
                 returnAt = parseStoredTime(root.optString("returnAt").ifBlank { root.optString("devolucion") }),
                 eventAddress = root.optString("eventAddress"),
+                eventReference = root.optString("eventReference"),
                 latitude = root.optDoubleOrNull("latitude"),
                 longitude = root.optDoubleOrNull("longitude"),
                 rentalTotalCents = root.optLong("rentalTotalCents"),
@@ -300,6 +305,7 @@ data class ReceiptSnapshot(
                     startAt = startAt,
                     returnAt = returnAt,
                     eventAddress = rental.optString("direccion"),
+                    eventReference = rental.optString("referenciaUbicacion"),
                     latitude = rental.optDoubleOrNull("lat"),
                     longitude = rental.optDoubleOrNull("lng"),
                     rentalTotalCents = (rental.optDouble("montoTotal", 0.0) * 100.0).roundToLong(),

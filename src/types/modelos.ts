@@ -67,6 +67,8 @@ export interface Alquiler {
   tiempoUso?: string;
   /** Dirección donde se instala el toldo. */
   direccion: string;
+  /** Referencia libre de la ubicación (punto de entrega), opcional. */
+  referenciaUbicacion?: string;
   /** Coordenadas GPS capturadas en el sitio (opcional). */
   lat?: number;
   lng?: number;
@@ -121,6 +123,7 @@ export interface DatosRecibo {
     fechaFin?: string;
     tiempoUso?: string;
     direccion: string;
+    referenciaUbicacion?: string;
     lat?: number;
     lng?: number;
     montoTotal: number;

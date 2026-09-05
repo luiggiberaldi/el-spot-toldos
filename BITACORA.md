@@ -16,6 +16,23 @@
 
 ---
 
+## v1.0.10 — 2026-09-05 — `Cambio`
+
+### Ubicación: fuera el botón "Ubicación manual", dentro la referencia opcional
+
+- Formulario de alquiler (APK y PWA): se eliminó el botón "Ubicación manual" y su
+  diálogo de coordenadas (flujo confuso y redundante). Queda un único botón
+  "GPS actual" a ancho completo, que además rellena la dirección detectada.
+- Nuevo campo **"Referencia de ubicación (opcional)"** bajo la dirección del evento
+  (Ej: casa azul, portón negro, frente al parque). Persiste en Room (columna
+  `referenciaUbicacion`, migración 5→6, esquema 6), viaja en los respaldos
+  (clave `referenciaUbicacion`) y llega a los recibos.
+- PDF de recibo (APK y PWA): nueva línea "REFERENCIA" en la tarjeta del servicio
+  cuando el alquiler la tiene, y "Referencia: …" en el texto de WhatsApp (APK).
+- Detalle del alquiler (APK): muestra la referencia cuando existe.
+- Validado: suite Android en verde (incluye round-trip del snapshot con referencia)
+  y web en verde (typecheck + 58 pruebas).
+
 ## v1.0.9 — 2026-09-05 — `Mejora`
 
 ### Atajos de abono (Total/Mitad) y comprobante sin campo de monto cuando el alquiler está saldado

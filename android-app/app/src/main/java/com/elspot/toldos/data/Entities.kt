@@ -39,6 +39,8 @@ data class AlquilerEntity(
     val direccion: String,
     val latitud: Double?,
     val longitud: Double?,
+    /** Referencia libre de ubicación (punto de entrega), opcional. Migración 5→6. */
+    val referenciaUbicacion: String = "",
     val montoTotalCents: Long,
     val abonoCents: Long,
     val estado: String,

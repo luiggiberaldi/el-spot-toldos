@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditLocationAlt
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.OpenInNew
@@ -214,6 +213,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     var mode by remember(initial) { mutableStateOf(RentalMode.from(initial?.modalidad)) }
     var startAt by remember(initial) { mutableStateOf(initial?.inicio ?: System.currentTimeMillis()) }
     var address by remember(initial) { mutableStateOf(initial?.direccion ?: "") }
+    var locationReference by remember(initial) { mutableStateOf(initial?.referenciaUbicacion ?: "") }
     var latitude by remember(initial) { mutableStateOf(initial?.latitud) }
     var longitude by remember(initial) { mutableStateOf(initial?.longitud) }
     var deposit by remember(initial) { mutableStateOf(initial?.let { "%.2f".format(it.abonoCents / 100.0) } ?: "") }
@@ -222,7 +222,6 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     var error by remember(initial) { mutableStateOf<String?>(null) }
     var locationError by remember(initial) { mutableStateOf<String?>(null) }
     var capturing by remember { mutableStateOf(false) }
-    var showManualLocationDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val location = remember { LocationService(context) }
@@ -237,20 +236,6 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     val parsedDeposit = if (deposit.isBlank()) 0L else parseDollarCents(deposit)
     val depositCents = parsedDeposit ?: 0L
     val returnAt = calculateReturnAt(startAt, mode.hours)
-
-    if (showManualLocationDialog) {
-        ManualLocationDialog(
-            initialLatitude = latitude,
-            initialLongitude = longitude,
-            onDismiss = { showManualLocationDialog = false },
-            onConfirm = { lat, lng ->
-                latitude = lat
-                longitude = lng
-                locationError = null
-                showManualLocationDialog = false
-            }
-        )
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -373,14 +358,6 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                             Text(if (capturing) "Capturando…" else "GPS actual", maxLines = 1)
                         }
 
-                        OutlinedButton(
-                            onClick = { showManualLocationDialog = true },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.EditLocationAlt, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.size(5.dp))
-                            Text("Ubicación manual", maxLines = 1)
-                        }
                     }
 
                     if (latitude != null && longitude != null) {
@@ -393,6 +370,15 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                     }
 
                     ErrorMessage(locationError)
+                }
+                item {
+                    OutlinedTextField(
+                        value = locationReference,
+                        onValueChange = { locationReference = it },
+                        label = { Text("Referencia de ubicación (opcional)") },
+                        placeholder = { Text("Ej: casa azul, portón negro, frente al parque") },
+                        singleLine = true
+                    )
                 }
                 item { FormDivider() }
                 item {
@@ -449,7 +435,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                     managesInventory && valid.any { it.quantity > availableUnitsForTent(state, it.tentId, initial?.id) } -> error = "La cantidad solicitada supera las unidades disponibles."
                     parsedDeposit == null -> error = "Indica un abono válido."
                     depositCents > totalCents -> error = "El abono no puede superar el total."
-                    else -> onSave(RentalDraft(initial?.id, clientId, valid, mode, startAt, address, latitude, longitude, totalCents, depositCents, status, notes))
+                    else -> onSave(RentalDraft(initial?.id, clientId, valid, mode, startAt, address, locationReference, latitude, longitude, totalCents, depositCents, status, notes))
                 }
             }) { Text("Guardar") }
         }
@@ -584,6 +570,7 @@ private fun RentalDetailDialog(rental: AlquilerEntity, state: AppUiState, viewMo
         item { Text("Inicio: ${formatDateTime(rental.inicio)}") }
         item { Text("Devolución: ${formatDateTime(rental.devolucion)}", color = MaterialTheme.colorScheme.secondary) }
         item { Text("Dirección: ${rental.direccion.ifBlank { "—" }}") }
+        if (rental.referenciaUbicacion.isNotBlank()) item { Text("Referencia: ${rental.referenciaUbicacion}") }
         item { GpsSummary(rental.latitud, rental.longitud) }
         item { Divider() }
         item { Text("Toldos", fontWeight = FontWeight.SemiBold) }
@@ -643,98 +630,3 @@ private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewMod
     )
 }
 
-@Composable
-private fun ManualLocationDialog(
-    initialLatitude: Double?,
-    initialLongitude: Double?,
-    onDismiss: () -> Unit,
-    onConfirm: (lat: Double, lng: Double) -> Unit
-) {
-    var rawInput by remember { mutableStateOf("") }
-    var latText by remember { mutableStateOf(initialLatitude?.toString() ?: "") }
-    var lngText by remember { mutableStateOf(initialLongitude?.toString() ?: "") }
-    var parseError by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.EditLocationAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-        title = { Text("Añadir ubicación manual") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "Pega coordenadas (ej: 10.142918, -68.016897) o enlace de Google Maps, o escribe latitud y longitud directamente.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = rawInput,
-                    onValueChange = { text ->
-                        rawInput = text
-                        parseError = null
-                        val parsed = com.elspot.toldos.location.parseCoordinates(text)
-                        if (parsed != null) {
-                            latText = "%.6f".format(java.util.Locale.US, parsed.first)
-                            lngText = "%.6f".format(java.util.Locale.US, parsed.second)
-                        }
-                    },
-                    label = { Text("Pegar enlace o coordenadas") },
-                    placeholder = { Text("10.142918, -68.016897 o link maps") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = latText,
-                        onValueChange = {
-                            latText = it.replace(',', '.')
-                            parseError = null
-                        },
-                        label = { Text("Latitud *") },
-                        placeholder = { Text("10.142918") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = lngText,
-                        onValueChange = {
-                            lngText = it.replace(',', '.')
-                            parseError = null
-                        },
-                        label = { Text("Longitud *") },
-                        placeholder = { Text("-68.016897") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                ErrorMessage(parseError)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val lat = latText.trim().toDoubleOrNull()
-                val lng = lngText.trim().toDoubleOrNull()
-                when {
-                    lat == null || lng == null -> {
-                        parseError = "Ingresa números válidos para latitud y longitud."
-                    }
-                    lat !in -90.0..90.0 -> {
-                        parseError = "La latitud debe estar entre -90 y 90."
-                    }
-                    lng !in -180.0..180.0 -> {
-                        parseError = "La longitud debe estar entre -180 y 180."
-                    }
-                    else -> {
-                        onConfirm(lat, lng)
-                    }
-                }
-            }) {
-                Text("Guardar ubicación")
-            }
-        }
-    )
-}

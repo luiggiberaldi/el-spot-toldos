@@ -247,6 +247,7 @@ class ReceiptPdfService(private val context: Context) {
         current = drawCardField(canvas, paint, "FOLIO DE ALQUILER", snapshot.rentalFolio, x + 14f, current, width - 28f)
         current = drawCardField(canvas, paint, "MODALIDAD", "${snapshot.mode.label} · ${snapshot.mode.hours} h", x + 14f, current, width - 28f)
         if (snapshot.eventAddress.isNotBlank()) current = drawCardField(canvas, paint, "DIRECCIÓN DEL EVENTO", snapshot.eventAddress, x + 14f, current, width - 28f)
+        if (snapshot.eventReference.isNotBlank()) current = drawCardField(canvas, paint, "REFERENCIA", snapshot.eventReference, x + 14f, current, width - 28f)
         if (snapshot.latitude != null && snapshot.longitude != null) drawCardField(canvas, paint, "UBICACIÓN GPS", "${snapshot.latitude}, ${snapshot.longitude}", x + 14f, current, width - 28f)
     }
 
@@ -306,6 +307,7 @@ class ReceiptPdfService(private val context: Context) {
             appendLine("Monto: ${centsToDollarText(snapshot.amountCents)}")
             if (bs.isNotBlank()) appendLine("Equivalente: $bs")
             if (snapshot.eventAddress.isNotBlank()) appendLine("Dirección: ${snapshot.eventAddress}")
+            if (snapshot.eventReference.isNotBlank()) appendLine("Referencia: ${snapshot.eventReference}")
             if (snapshot.latitude != null && snapshot.longitude != null) appendLine("Ubicación: https://maps.google.com/?q=${snapshot.latitude},${snapshot.longitude}")
             appendLine("Gracias por preferirnos.")
         }

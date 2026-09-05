@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReciboEntity::class,
         BitacoraEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -62,6 +62,13 @@ abstract class AppDatabase : RoomDatabase() {
                       ) / 2
                     """.trimIndent()
                 )
+            }
+        }
+
+        /** v1.0.10: referencia libre de ubicación en alquileres (opcional, texto vacío). */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE alquileres ADD COLUMN referenciaUbicacion TEXT NOT NULL DEFAULT ''")
             }
         }
 

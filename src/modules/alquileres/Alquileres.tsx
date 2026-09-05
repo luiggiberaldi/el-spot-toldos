@@ -288,6 +288,7 @@ function FormularioAlquiler({
   );
   const [modalidad, setModalidad] = useState<ModalidadAlquiler>(editando?.modalidad ?? '24h');
   const [direccion, setDireccion] = useState(editando?.direccion ?? '');
+  const [referenciaUbicacion, setReferenciaUbicacion] = useState(editando?.referenciaUbicacion ?? '');
   const [lat, setLat] = useState<number | null>(editando?.lat ?? null);
   const [lng, setLng] = useState<number | null>(editando?.lng ?? null);
   const [abono, setAbono] = useState(editando ? String(editando.abono) : '');
@@ -424,6 +425,7 @@ function FormularioAlquiler({
       })),
       modalidad,
       direccion: direccion.trim(),
+      referenciaUbicacion: referenciaUbicacion.trim(),
       lat: lat ?? undefined,
       lng: lng ?? undefined,
       montoTotal: total,
@@ -593,8 +595,16 @@ function FormularioAlquiler({
             label="Dirección del evento"
             valor={direccion}
             alCambiar={setDireccion}
-            placeholder="Calle, urbanización, referencia…"
+            placeholder="Calle, urbanización, sector…"
           />
+          <div className="mt-3">
+            <CampoTexto
+              label="Referencia de ubicación (opcional)"
+              valor={referenciaUbicacion}
+              alCambiar={setReferenciaUbicacion}
+              placeholder="Ej: casa azul, portón negro, frente al parque"
+            />
+          </div>
           <div className="mt-3">
             {lat === null || lng === null ? (
               <button
@@ -939,6 +949,7 @@ function EmitirRecibo({
         fechaFin: alquiler.fechaFin,
         tiempoUso: alquiler.tiempoUso,
         direccion: alquiler.direccion,
+        referenciaUbicacion: alquiler.referenciaUbicacion ?? '',
         lat: alquiler.lat,
         lng: alquiler.lng,
         montoTotal: alquiler.montoTotal,
