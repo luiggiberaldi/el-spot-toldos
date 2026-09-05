@@ -28,6 +28,8 @@ class ReceiptPdfService(private val context: Context) {
     private val contentWidth = pageWidth - margin * 2
     private val primary = android.graphics.Color.rgb(32, 125, 181)
     private val darkBlue = android.graphics.Color.rgb(32, 91, 132)
+    private val lightBlue = android.graphics.Color.rgb(170, 210, 240)
+    private val lightGray = android.graphics.Color.rgb(190, 202, 216)
     private val headerDark = android.graphics.Color.rgb(241, 246, 250)
     private val pageBackground = android.graphics.Color.WHITE
     private val text = android.graphics.Color.rgb(24, 39, 58)
@@ -104,11 +106,11 @@ class ReceiptPdfService(private val context: Context) {
         val paymentWidth = contentWidth - summaryWidth - 12f
         paint.color = darkBlue
         canvas.drawRoundRect(RectF(margin, summaryTop, margin + paymentWidth, summaryTop + summaryHeight), 7f, 7f, paint)
-        drawText(canvas, paint, "MONTO A CANCELAR", margin + 15f, summaryTop + 27f, 9f, android.graphics.Color.rgb(32, 91, 132), true)
-        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 15f, summaryTop + 67f, 25f, text, true)
+        drawText(canvas, paint, "MONTO A CANCELAR", margin + 15f, summaryTop + 27f, 9f, lightBlue, true)
+        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 15f, summaryTop + 65f, 20f, android.graphics.Color.WHITE, true)
         val bs = centsToBolivarText(snapshot.amountCents, snapshot.exchangeRate)
         if (bs.isNotBlank()) {
-            drawText(canvas, paint, "$bs · ${exchangeRateText(snapshot.exchangeRate)}", margin + 15f, summaryTop + 96f, 9f, muted)
+            drawText(canvas, paint, "$bs · ${exchangeRateText(snapshot.exchangeRate)}", margin + 15f, summaryTop + 95f, 9f, lightGray)
         }
         paint.color = pale
         canvas.drawRoundRect(RectF(pageWidth - margin - summaryWidth, summaryTop, pageWidth - margin, summaryTop + summaryHeight), 7f, 7f, paint)
