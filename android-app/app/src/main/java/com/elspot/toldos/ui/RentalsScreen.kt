@@ -396,8 +396,8 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     var longitude by remember(initial) { mutableStateOf(initial?.longitud) }
     var freight by remember(initial) { mutableStateOf(initial?.let { if (it.fleteCents > 0L) "%.2f".format(it.fleteCents / 100.0) else "" } ?: "") }
     var deliveryPhotoUri by remember(initial) { mutableStateOf(initial?.fotoEntregaUri.orEmpty()) }
-    var reminderActive by remember(initial) { mutableStateOf(true) }
-    var reminderMinutes by remember(initial) { mutableStateOf(120) }
+    var reminderActive by remember(initial) { mutableStateOf(state.config.notificationsEnabled) }
+    var reminderMinutes by remember(initial) { mutableStateOf(state.config.reminderMinutes.coerceIn(60, 180)) }
     var showQuickClientDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var deposit by remember(initial) { mutableStateOf(initial?.let { "%.2f".format(it.abonoCents / 100.0) } ?: "") }
@@ -850,18 +850,19 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        "Alerta automática previa al vencimiento",
+                                        if (state.config.notificationsEnabled) "Alerta previa al vencimiento del servicio" else "Desactivado globalmente en Ajustes",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (state.config.notificationsEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                                     )
                                 }
                                 Switch(
-                                    checked = reminderActive,
-                                    onCheckedChange = { reminderActive = it }
+                                    checked = reminderActive && state.config.notificationsEnabled,
+                                    onCheckedChange = { reminderActive = it },
+                                    enabled = state.config.notificationsEnabled
                                 )
                             }
 
-                            if (reminderActive) {
+                            if (reminderActive && state.config.notificationsEnabled) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)

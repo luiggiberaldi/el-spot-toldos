@@ -16,6 +16,28 @@
 
 ---
 
+## v1.3.1 — 2026-09-06 — `Mejora`
+
+### Optimización integral del sistema de notificaciones de devolución y depuración de redundancias
+
+- **Apertura de la App con `PendingIntent` (APK)**:
+  - Se implementó `PendingIntent` con `FLAG_ACTIVITY_SINGLE_TOP or FLAG_ACTIVITY_CLEAR_TOP` hacia `MainActivity` en todas las notificaciones de devolución (`returns`). Al tocar la alerta de vencimiento o proximidad en el teléfono, la aplicación se abre de inmediato en lugar de descartarse en silencio.
+- **Verificación en Room DB en `ReminderWorker` (APK)**:
+  - Migración a `CoroutineWorker` con consulta en tiempo real a la base de datos local SQLite/Room antes de emitir la alerta. Si el alquiler ya fue devuelto (`RETURNED`), cancelado (`CANCELLED`) o eliminado, el worker termina en silencio sin generar falsas alarmas ni notificaciones molestas.
+- **Supresión de reprogramaciones masivas redundantes (APK)**:
+  - La reevaluación de los recordatorios de todos los alquileres activos en `AppViewModel` ahora se ejecuta una sola vez al inicio de la app o ante cambios reales de configuración en `SettingsScreen`. Ya no se re-encolan decenas de trabajos en WorkManager al modificar clientes, toldos o recibos.
+- **Eliminación de llamadas superfluas de cancelación (APK)**:
+  - Se removió la cancelación manual en `scheduleRentalReminder()`, permitiendo que la política nativa `ExistingWorkPolicy.REPLACE` de WorkManager sustituya atómicamente la tarea sin borrar colateralmente la alerta de vencimiento.
+- **Depuración de canales muertos (APK)**:
+  - Se eliminaron del sistema operativo los canales huérfanos `PAYMENTS_ID` e `INVENTORY_ID` que no emitían notificaciones, conservando únicamente `RETURNS_ID` y `UPDATES_ID`.
+- **Sincronización de recordatorio en formulario (APK)**:
+  - El switch y los chips de anticipación (`1h, 2h, 3h`) en `RentalsScreen` heredan el estado global y sus preferencias son respetadas por `saveRental`.
+- **Validación completa**:
+  - Pruebas Android: `testDebugUnitTest` 100% aprobadas.
+  - Pruebas Web: `npm test` 58/58 tests aprobados.
+
+---
+
 ## v1.3.0 — 2026-09-06 — `Mejora`
 
 ### Rediseño integral del modal de toldos, blindaje de inventario y resolución determinista de recibos

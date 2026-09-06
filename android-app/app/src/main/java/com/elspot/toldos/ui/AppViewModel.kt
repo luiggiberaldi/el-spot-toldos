@@ -79,13 +79,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { repository.fixHistoricalPaidReceipts() }
         }
         viewModelScope.launch {
+            var isFirst = true
+            var lastNotificationsEnabled: Boolean? = null
+            var lastReminderMinutes: Int? = null
+
             repository.state.collect { snapshot ->
-                if (snapshot.config.notificationsEnabled) {
-                    snapshot.rentals
-                        .filter { it.estado == RentalStatus.ACTIVE.name || it.estado == RentalStatus.DELIVERED.name }
-                        .forEach { scheduleNotifications(it, snapshot.config) }
-                } else {
-                    scheduler.cancelAllReminders()
+                val config = snapshot.config
+                val configChanged = lastNotificationsEnabled != config.notificationsEnabled ||
+                    lastReminderMinutes != config.reminderMinutes
+                if (isFirst || configChanged) {
+                    isFirst = false
+                    lastNotificationsEnabled = config.notificationsEnabled
+                    lastReminderMinutes = config.reminderMinutes
+
+                    if (config.notificationsEnabled) {
+                        snapshot.rentals
+                            .filter { it.estado == RentalStatus.ACTIVE.name || it.estado == RentalStatus.DELIVERED.name }
+                            .forEach { scheduleNotifications(it, config) }
+                    } else {
+                        scheduler.cancelAllReminders()
+                    }
                 }
             }
         }
@@ -160,8 +173,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.saveRental(draft)
             result.getOrThrow().also { saved ->
                 val config = repository.snapshot().config
-                if (config.notificationsEnabled && (saved.estado == RentalStatus.ACTIVE.name || saved.estado == RentalStatus.DELIVERED.name)) {
-                    scheduleNotifications(saved, config)
+                if (config.notificationsEnabled && draft.reminderActive && (saved.estado == RentalStatus.ACTIVE.name || saved.estado == RentalStatus.DELIVERED.name)) {
+                    scheduler.scheduleRentalReminder(
+                        rentalId = saved.id,
+                        rentalFolio = saved.folio,
+                        returnAt = saved.devolucion,
+                        reminderMinutes = draft.reminderMinutes
+                    )
+                    scheduler.scheduleExpiredReminder(saved.id, saved.folio, saved.devolucion)
                 } else {
                     scheduler.cancelRental(saved.id)
                 }
