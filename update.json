@@ -2,7 +2,7 @@
   "versionCode": 16,
   "versionName": "1.3.1",
   "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.3.1/el-spot-toldos-1.3.1.apk",
-  "sha256": "PENDING_CI_BUILD",
+  "sha256": "80682a6cacf29a19a531097c1d12a2b9d55d8aee94caaf1beea91a1dfe8bfa1a",
   "notes": "Optimización integral del sistema de notificaciones: interacción con PendingIntent para abrir la app, verificación fáctica en Room DB para evitar falsas alarmas, supresión de reprogramaciones masivas redundantes y sincronización de recordatorios en formulario.",
   "mandatory": false
 }
