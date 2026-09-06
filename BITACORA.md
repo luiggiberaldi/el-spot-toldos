@@ -16,6 +16,20 @@
 
 ---
 
+## v1.2.0 — 2026-09-06 — `Nuevo`
+
+### Suite de mejoras para gestión de alquileres, modal en pantalla completa y Room v7
+
+- **Modal de alquiler a pantalla completa (APK y PWA)**: rediseño integral con Material 3 Full-Screen Dialog, barra superior con acciones rápidas, barra inferior fija (*sticky bottom bar*) con resumen financiero en tiempo real (Total a pagar y Saldo en USD y Bs.) y botón principal accesible en todo momento. Organización en tarjetas temáticas (Cliente, Toldos, Duración, Ubicación, Cobro y Observaciones).
+- **Alta rápida de clientes (APK y PWA)**: botón `+ Nuevo` directamente al lado del selector de clientes en el formulario de alquiler. Permite registrar un nuevo cliente al vuelo y seleccionarlo de inmediato sin perder los datos previamente cargados del alquiler.
+- **Costo de flete / transporte opcional (APK y PWA)**: nuevo campo para registrar el flete. Se suma al total del servicio y actualiza en tiempo real los cálculos de abono (50% y Total). Aparece desglosado como concepto independiente en el recibo PDF (`Flete / Traslado: $XX.XX`), en el mensaje formateado para WhatsApp y en la vista de detalle.
+- **Recordatorios de devolución (APK y PWA)**: switch de activación y chips de selección de anticipación (1h, 2h y 3h antes de la recogida). Persiste en el borrador y en la entidad del alquiler para control logístico.
+- **Comprobante fotográfico de entrega (APK y PWA)**: soporte para adjuntar foto del estado del equipo al entregarse (captura directa con cámara o selección de galería en Android mediante FileProvider; carga de imagen local en PWA). Se almacena de forma segura y se puede visualizar en pantalla completa desde el detalle del alquiler.
+- **Migración de base de datos Room (v6 → v7)**: migración retrocompatible `MIGRATION_6_7` con soporte en respaldos JSON (`BackupManager`).
+- **Validación completa**: compilación de producción Vite PWA (`tsc -b && vite build`), pruebas unitarias Web (58/58 tests) y pruebas unitarias Android (`./gradlew test`) 100% aprobadas.
+
+---
+
 ## v1.1.0 — 2026-09-06 — `Mejora`
 
 ### Recibo PDF profesional: dirección manual prioritaria, multilínea dinámico y nuevo footer centrado

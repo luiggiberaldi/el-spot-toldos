@@ -106,6 +106,10 @@ data class RentalDraft(
     val locationReference: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val fleteCents: Long = 0L,
+    val fotoEntregaUri: String = "",
+    val reminderActive: Boolean = true,
+    val reminderMinutes: Int = 120,
     val totalCents: Long = 0L,
     val depositCents: Long = 0L,
     val status: RentalStatus = RentalStatus.ACTIVE,
@@ -146,6 +150,7 @@ data class ReceiptSnapshot(
     val eventReference: String = "",
     val latitude: Double?,
     val longitude: Double?,
+    val fleteCents: Long = 0L,
     val rentalTotalCents: Long,
     val rentalDepositCents: Long,
     val items: List<ReceiptItemSnapshot>
@@ -177,6 +182,7 @@ data class ReceiptSnapshot(
             .put("eventReference", eventReference)
             .put("latitude", latitude ?: JSONObject.NULL)
             .put("longitude", longitude ?: JSONObject.NULL)
+            .put("fleteCents", fleteCents)
             .put("rentalTotalCents", rentalTotalCents)
             .put("rentalDepositCents", rentalDepositCents)
         val itemArray = JSONArray()
@@ -243,6 +249,7 @@ data class ReceiptSnapshot(
                 eventReference = root.optString("eventReference"),
                 latitude = root.optDoubleOrNull("latitude"),
                 longitude = root.optDoubleOrNull("longitude"),
+                fleteCents = root.optLong("fleteCents", 0L),
                 rentalTotalCents = root.optLong("rentalTotalCents"),
                 rentalDepositCents = root.optLong("rentalDepositCents"),
                 items = items
@@ -308,6 +315,7 @@ data class ReceiptSnapshot(
                     eventReference = rental.optString("referenciaUbicacion"),
                     latitude = rental.optDoubleOrNull("lat"),
                     longitude = rental.optDoubleOrNull("lng"),
+                    fleteCents = (rental.optDouble("flete", 0.0) * 100.0).roundToLong(),
                     rentalTotalCents = (rental.optDouble("montoTotal", 0.0) * 100.0).roundToLong(),
                     rentalDepositCents = (rental.optDouble("abono", 0.0) * 100.0).roundToLong(),
                     items = items

@@ -1,7 +1,7 @@
 import type { jsPDF } from 'jspdf';
 import type { DatosRecibo } from '../types/modelos';
 import { tarifaEfectiva } from './calculos';
-import { formatearBsEquivalente, formatearFechaCorta, formatearMonto } from './formato';
+import { formatearBsEquivalente, formatearFechaCorta, formatearFechaHora, formatearMonto } from './formato';
 import { formatearCoordenadas } from './geolocalizacion';
 import { nombreArchivoSeguro } from './venezuela';
 
@@ -169,9 +169,26 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
     ...(datos.cliente.direccion ? [{ clave: 'Dirección', valor: datos.cliente.direccion }] : [])
   ];
   const direccionEvento = datos.alquiler.direccion?.trim() || datos.alquiler.referenciaUbicacion?.trim() || '';
+  let fechaEntrega = '';
+  if (datos.alquiler.fechaDevolucion) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.fechaDevolucion);
+  } else if (datos.alquiler.fechaFin) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.fechaFin);
+  } else {
+    const baseFecha = datos.alquiler.fechaInicio || datos.alquiler.creadoEn || datos.emitidoEn;
+    if (baseFecha) {
+      const horas = datos.alquiler.modalidad === '12h' ? 12 : 24;
+      const ms = new Date(baseFecha).getTime() + horas * 3600 * 1000;
+      if (!isNaN(ms)) {
+        fechaEntrega = formatearFechaHora(new Date(ms).toISOString());
+      }
+    }
+  }
+
   const camposServicio: Array<{ clave: string; valor: string }> = [
     { clave: 'Folio de alquiler', valor: datos.alquiler.folio },
     { clave: 'Modalidad', valor: datos.alquiler.modalidad === '12h' ? '12 horas' : '24 horas' },
+    ...(fechaEntrega ? [{ clave: 'Entrega del toldo', valor: fechaEntrega }] : []),
     ...(direccionEvento ? [{ clave: 'Dirección del evento', valor: direccionEvento }] : []),
     ...(datos.alquiler.direccion?.trim() && datos.alquiler.referenciaUbicacion?.trim()
       ? [{ clave: 'Referencia', valor: datos.alquiler.referenciaUbicacion.trim() }]
@@ -229,6 +246,18 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
     texto(doc, formatearMonto(tarifa * item.cantidad, moneda), xSubtotal - 4, y + 5, { size: 8.5, align: 'right' });
     y += altoFila;
   });
+  if (datos.alquiler.flete && datos.alquiler.flete > 0) {
+    const altoFila = 9;
+    if (datos.alquiler.items.length % 2 === 0) {
+      doc.setFillColor(...COLOR_FONDO);
+      doc.rect(xTabla, y, ANCHO_CONTENIDO, altoFila, 'F');
+    }
+    texto(doc, 'Flete / Traslado', xTabla + 4, y + 5, { size: 8.5 });
+    texto(doc, '1', xCant, y + 5, { size: 8.5, align: 'right' });
+    texto(doc, formatearMonto(datos.alquiler.flete, moneda), xTarifa, y + 5, { size: 8.5, align: 'right' });
+    texto(doc, formatearMonto(datos.alquiler.flete, moneda), xSubtotal - 4, y + 5, { size: 8.5, align: 'right' });
+    y += altoFila;
+  }
   doc.setDrawColor(...COLOR_BORDE);
   doc.setLineWidth(0.25);
   doc.line(xTabla, y, xTabla + ANCHO_CONTENIDO, y);

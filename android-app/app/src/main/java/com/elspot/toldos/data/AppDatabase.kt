@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReciboEntity::class,
         BitacoraEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,6 +25,14 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bitacora(): BitacoraDao
 
     companion object {
+        /** v1.2.0: Costo de flete/transporte y fotografía de comprobante de entrega en alquileres. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE alquileres ADD COLUMN fleteCents INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE alquileres ADD COLUMN fotoEntregaUri TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         /**
          * Reparación única de datos creados por v1.0.4 y anteriores.
          *

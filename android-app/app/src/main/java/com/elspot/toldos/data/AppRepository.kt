@@ -106,7 +106,7 @@ class AppRepository(
             )?.let { validationError ->
                 throw IllegalArgumentException(validationError)
             }
-            val calculatedTotal = calculateRentalTotal(draft.items, draft.mode)
+            val calculatedTotal = calculateRentalTotal(draft.items, draft.mode, draft.fleteCents)
             val entity = AlquilerEntity(
                 id = id,
                 folio = previous?.folio ?: settings.nextRentalFolio(),
@@ -118,6 +118,8 @@ class AppRepository(
                 referenciaUbicacion = draft.locationReference.trim(),
                 latitud = draft.latitude,
                 longitud = draft.longitude,
+                fleteCents = draft.fleteCents,
+                fotoEntregaUri = draft.fotoEntregaUri,
                 montoTotalCents = calculatedTotal,
                 abonoCents = draft.depositCents,
                 estado = draft.status.name,
@@ -257,6 +259,7 @@ class AppRepository(
                 eventReference = rental.referenciaUbicacion,
                 latitude = rental.latitud,
                 longitude = rental.longitud,
+                fleteCents = rental.fleteCents,
                 rentalTotalCents = rental.montoTotalCents,
                 rentalDepositCents = depositAfterReceipt,
                 items = rentalItems.map {

@@ -98,7 +98,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         document: String,
         phone: String,
         address: String,
-        notes: String
+        notes: String,
+        onSuccess: ((ClienteEntity) -> Unit)? = null
     ) {
         if (name.trim().isBlank()) return fail("El nombre del cliente es obligatorio.")
         val entity = ClienteEntity(
@@ -111,7 +112,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             notas = notes.trim(),
             creadoEn = existing?.creadoEn ?: System.currentTimeMillis()
         )
-        runAction("Cliente guardado") { repository.saveClient(entity) }
+        runAction("Cliente guardado") {
+            repository.saveClient(entity)
+            onSuccess?.invoke(entity)
+        }
     }
 
     fun deleteClient(id: String) = runAction("Cliente eliminado") { repository.deleteClient(id) }

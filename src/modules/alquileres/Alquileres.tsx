@@ -6,7 +6,8 @@ import { formatearFechaCorta, formatearMonto, formatearMontoDual } from '../../l
 import { enlaceMapa, formatearCoordenadas, obtenerUbicacion } from '../../lib/geolocalizacion';
 import { puedeCambiarEstadoAlquiler, unidadesDisponibles } from '../../lib/validaciones';
 import { validarMontoPago } from '../../lib/pagos';
-import type { Alquiler, DatosRecibo, EstadoAlquiler, EstadoRecibo, ModalidadAlquiler } from '../../types/modelos';
+import type { Alquiler, Cliente, DatosRecibo, EstadoAlquiler, EstadoRecibo, ModalidadAlquiler } from '../../types/modelos';
+import { capitalizarPalabras, formatearCedulaVenezolana, formatearTelefonoVenezolano } from '../../lib/venezuela';
 import { Modal } from '../../components/Modal';
 import {
   CampoNumero,
@@ -17,7 +18,7 @@ import {
 } from '../../components/Campos';
 import { EtiquetaAlquiler } from '../../components/Etiqueta';
 import type { Vista } from '../../components/Layout';
-import { Plus, X, MapPin, Receipt, CheckCircle2, Clock3, FileText, WalletCards, AlertCircle } from 'lucide-react';
+import { Plus, X, MapPin, Receipt, CheckCircle2, Clock3, FileText, WalletCards, AlertCircle, Camera, ZoomIn } from 'lucide-react';
 
 const OPCIONES_ESTADO: Array<{ valor: EstadoAlquiler; etiqueta: string }> = [
   { valor: 'activo', etiqueta: 'Activo' },
@@ -252,6 +253,88 @@ export function Alquileres({ navegar }: { navegar: (vista: Vista) => void }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Modal de alta rápida de clientes                                   */
+/* ------------------------------------------------------------------ */
+
+function ModalClienteRapido({
+  alCerrar,
+  alGuardar
+}: {
+  alCerrar: () => void;
+  alGuardar: (cliente: Cliente) => void;
+}) {
+  const [nombre, setNombre] = useState('');
+  const [cedula, setCedula] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [error, setError] = useState('');
+
+  const guardar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim()) {
+      setError('El nombre del cliente es obligatorio.');
+      return;
+    }
+    const nuevo: Cliente = {
+      id: generarId(),
+      nombre: capitalizarPalabras(nombre.trim()),
+      cedula: formatearCedulaVenezolana(cedula.trim()),
+      telefono: formatearTelefonoVenezolano(telefono.trim()),
+      email: '',
+      direccion: direccion.trim(),
+      notas: '',
+      creadoEn: new Date().toISOString()
+    };
+    alGuardar(nuevo);
+  };
+
+  return (
+    <Modal titulo="Registrar nuevo cliente" alCerrar={alCerrar} anchoMaximo="max-w-md">
+      <form onSubmit={guardar} className="space-y-4">
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs text-red-300">
+            {error}
+          </div>
+        )}
+        <CampoTexto
+          label="Nombre y apellido *"
+          valor={nombre}
+          alCambiar={setNombre}
+          placeholder="Ej: María Rodríguez"
+        />
+        <CampoTexto
+          label="Cédula / RIF (opcional)"
+          valor={cedula}
+          alCambiar={setCedula}
+          placeholder="Ej: V-12345678"
+        />
+        <CampoTexto
+          label="Teléfono / WhatsApp (opcional)"
+          valor={telefono}
+          alCambiar={setTelefono}
+          placeholder="Ej: 0412-1234567"
+        />
+        <CampoTextoArea
+          label="Dirección habitual (opcional)"
+          valor={direccion}
+          alCambiar={setDireccion}
+          placeholder="Calle, sector, referencia..."
+          filas={2}
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" className="btn-secundario" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primario">
+            Guardar cliente
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Formulario de alquiler (crear / editar)                             */
 /* ------------------------------------------------------------------ */
 
@@ -274,6 +357,7 @@ function FormularioAlquiler({
 }) {
   const moneda = useAppStore((s) => s.config.negocio.moneda);
   const tasaBs = useAppStore((s) => s.config.tasaBs);
+  const agregarCliente = useAppStore((s) => s.agregarCliente);
 
   const [clienteId, setClienteId] = useState(editando?.clienteId ?? '');
   const [items, setItems] = useState<ItemFormulario[]>(
@@ -290,6 +374,9 @@ function FormularioAlquiler({
   const [referenciaUbicacion, setReferenciaUbicacion] = useState(editando?.referenciaUbicacion ?? '');
   const [lat, setLat] = useState<number | null>(editando?.lat ?? null);
   const [lng, setLng] = useState<number | null>(editando?.lng ?? null);
+  const [flete, setFlete] = useState(editando?.flete ? String(editando.flete) : '');
+  const [fotoEntregaUrl, setFotoEntregaUrl] = useState(editando?.fotoEntregaUrl ?? '');
+  const [modalClienteRapidoAbierto, setModalClienteRapidoAbierto] = useState(false);
   const [abono, setAbono] = useState(editando ? String(editando.abono) : '');
   const [estado, setEstado] = useState<EstadoAlquiler>(editando?.estado ?? 'activo');
   const [notas, setNotas] = useState(editando?.notas ?? '');
@@ -304,8 +391,8 @@ function FormularioAlquiler({
         (Number.parseInt(item.cantidad, 10) || 0),
     0
   );
-  // La línea ya contiene el precio de la modalidad seleccionada.
-  const total = redondearMonto(subtotal);
+  const fleteNumero = Number(flete.replace(',', '.')) || 0;
+  const total = redondearMonto(subtotal + (Number.isFinite(fleteNumero) && fleteNumero > 0 ? fleteNumero : 0));
   const abonoNumero = Number(abono.replace(',', '.')) || 0;
   const abonoExcedeTotal = Number.isFinite(abonoNumero) && abonoNumero > total;
   const saldo = calcularSaldo(total, abonoNumero);
@@ -425,6 +512,8 @@ function FormularioAlquiler({
       referenciaUbicacion: referenciaUbicacion.trim(),
       lat: lat ?? undefined,
       lng: lng ?? undefined,
+      flete: Number.isFinite(fleteNumero) && fleteNumero > 0 ? redondearMonto(fleteNumero) : undefined,
+      fotoEntregaUrl: fotoEntregaUrl || undefined,
       montoTotal: total,
       abono: redondearMonto(abonoValido),
       estado,
@@ -445,29 +534,53 @@ function FormularioAlquiler({
     >
       <div className="space-y-5 pb-1">
         {/* Cliente */}
-        <CampoSelect
-          label="Cliente"
-          valor={clienteId}
-          alCambiar={setClienteId}
-          obligatorio
-          opciones={[
-            { valor: '', etiqueta: '— Selecciona un cliente —' },
-            ...clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))
-          ]}
-        />
-        {clientes.length === 0 && (
-          <p className="text-xs text-amber-400">
-            No hay clientes registrados.{' '}
+        <div>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <CampoSelect
+                label="Cliente"
+                valor={clienteId}
+                alCambiar={setClienteId}
+                obligatorio
+                opciones={[
+                  { valor: '', etiqueta: '— Selecciona un cliente —' },
+                  ...clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))
+                ]}
+              />
+            </div>
             <button
-              className="inline-block min-h-6 py-1 align-baseline font-medium underline"
-              onClick={() => {
-                alCerrar();
-                navegar('clientes');
-              }}
+              type="button"
+              className="btn-secundario shrink-0 !py-2 text-xs"
+              onClick={() => setModalClienteRapidoAbierto(true)}
+              title="Registrar nuevo cliente"
             >
-              Crear un cliente aquí
+              <Plus className="h-3.5 w-3.5" />
+              Nuevo
             </button>
-          </p>
+          </div>
+          {clientes.length === 0 && (
+            <p className="mt-1 text-xs text-amber-400">
+              No hay clientes registrados.{' '}
+              <button
+                type="button"
+                className="inline-block min-h-6 py-1 align-baseline font-medium underline"
+                onClick={() => setModalClienteRapidoAbierto(true)}
+              >
+                Crear un cliente aquí
+              </button>
+            </p>
+          )}
+        </div>
+
+        {modalClienteRapidoAbierto && (
+          <ModalClienteRapido
+            alCerrar={() => setModalClienteRapidoAbierto(false)}
+            alGuardar={(nuevo) => {
+              agregarCliente(nuevo);
+              setClienteId(nuevo.id);
+              setModalClienteRapidoAbierto(false);
+            }}
+          />
         )}
 
         {/* Toldos del alquiler */}
@@ -650,40 +763,21 @@ function FormularioAlquiler({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <CampoNumero
-              label="Abono recibido"
-              valor={abono}
-              alCambiar={cambiarAbono}
+              label="Flete / Transporte (opcional)"
+              valor={flete}
+              alCambiar={setFlete}
               min={0}
               placeholder="0.00"
             />
-            <p className={`mt-1 text-xs ${abonoExcedeTotal ? 'font-medium text-red-400' : 'text-gray-500'}`}>
-              Máximo permitido: {formatearMonto(total, moneda)}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2" aria-label="Atajos para definir el abono">
-              <button
-                type="button"
-                className="btn-secundario !px-3 !py-1.5 text-xs"
-                onClick={() => cambiarAbono(String(redondearMonto(total * 0.5)))}
-              >
-                50% del total
-              </button>
-              <button
-                type="button"
-                className="btn-secundario !px-3 !py-1.5 text-xs"
-                onClick={() => cambiarAbono(String(redondearMonto(total)))}
-              >
-                Total completo
-              </button>
-            </div>
             <p className="mt-1 text-xs text-gray-500">
-              Puedes usar un atajo o escribir cualquier monto recibido.
+              Costo de traslado o entrega. Se sumará al total del alquiler.
             </p>
           </div>
           <div>
             <CampoSelect
               label="Estado del alquiler"
               valor={estado}
-              alCambiar={setEstado}
+              alCambiar={(v) => setEstado(v as EstadoAlquiler)}
               opciones={OPCIONES_ESTADO.filter((opcion) =>
                 !editando || opcion.valor === editando.estado || puedeCambiarEstadoAlquiler(editando.estado, opcion.valor)
               ).filter((opcion) => editando || opcion.valor === 'activo')}
@@ -692,6 +786,45 @@ function FormularioAlquiler({
               Indica en qué etapa está el servicio: activo, entregado, devuelto o cancelado. No representa el estado del pago.
             </p>
           </div>
+        </div>
+
+        <div>
+          <CampoNumero
+            label="Abono recibido"
+            valor={abono}
+            alCambiar={cambiarAbono}
+            min={0}
+            placeholder="0.00"
+          />
+          <p className={`mt-1 text-xs ${abonoExcedeTotal ? 'font-medium text-red-400' : 'text-gray-500'}`}>
+            Máximo permitido: {formatearMonto(total, moneda)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2" aria-label="Atajos para definir el abono">
+            <button
+              type="button"
+              className="btn-secundario !px-3 !py-1.5 text-xs"
+              onClick={() => cambiarAbono(String(redondearMonto(total * 0.5)))}
+            >
+              50% del total
+            </button>
+            <button
+              type="button"
+              className="btn-secundario !px-3 !py-1.5 text-xs"
+              onClick={() => cambiarAbono(String(redondearMonto(total)))}
+            >
+              Total completo
+            </button>
+            <button
+              type="button"
+              className="btn-secundario !px-3 !py-1.5 text-xs text-gray-400"
+              onClick={() => cambiarAbono('')}
+            >
+              Limpiar
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Puedes usar un atajo o escribir cualquier monto recibido.
+          </p>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-800/70">
@@ -706,21 +839,89 @@ function FormularioAlquiler({
                 <span className="font-medium text-gray-300">{formatearMonto(subtotal, moneda)}</span>
               </div>
             )}
+            {fleteNumero > 0 && (
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">Flete / Transporte</span>
+                <span className="font-medium text-cyan-300">{formatearMonto(fleteNumero, moneda)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between py-2.5">
-              <span className="text-gray-400">Total{modalidad === '12h' ? ' (−50%)' : ''}</span>
-              <span className="font-semibold text-white">{formatearMontoDual(total, moneda, tasaBs)}</span>
+              <span className="font-semibold text-gray-300">Total a pagar</span>
+              <span className="font-bold text-marca-400">{formatearMontoDual(total, moneda, tasaBs)}</span>
             </div>
             <div className="flex items-center justify-between py-2.5">
-              <span className="text-gray-400">Abono</span>
-              <span className="font-medium text-gray-300">{formatearMontoDual(abonoNumero, moneda, tasaBs)}</span>
+              <span className="text-gray-400">Abono registrado</span>
+              <span className="font-medium text-gray-300">
+                {formatearMonto(Number.isFinite(abonoNumero) ? abonoNumero : 0, moneda)}
+              </span>
             </div>
             <div className="flex items-center justify-between py-2.5">
-              <span className="text-gray-400">Pendiente</span>
-              <span className={`font-bold ${saldo > 0 ? 'text-amber-300' : 'text-emerald-300'}`}>
-                {formatearMontoDual(saldo, moneda, tasaBs)}
+              <span className="font-semibold text-gray-300">Saldo pendiente</span>
+              <span className={`font-bold ${saldo > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {saldo > 0 ? formatearMontoDual(saldo, moneda, tasaBs) : 'Completamente pagado'}
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Comprobante de entrega (foto) */}
+        <div className="rounded-2xl border border-slate-800/70 bg-slate-900/50 p-3 sm:p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Camera className="h-4 w-4 text-marca-400" />
+              <p className="text-sm font-semibold text-gray-200">Comprobante de entrega (foto)</p>
+            </div>
+            {fotoEntregaUrl && (
+              <span className="rounded-full bg-marca-500/20 px-2 py-0.5 text-xs text-marca-300">
+                Foto adjunta
+              </span>
+            )}
+          </div>
+          {fotoEntregaUrl ? (
+            <div className="space-y-2">
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                <img
+                  src={fotoEntregaUrl}
+                  alt="Comprobante de entrega"
+                  className="h-48 w-full object-cover"
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-secundario w-full !py-1.5 text-xs text-red-400 hover:text-red-300"
+                onClick={() => setFotoEntregaUrl('')}
+              >
+                Eliminar fotografía
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label className="btn-secundario inline-flex cursor-pointer items-center gap-2 text-xs">
+                <Camera className="h-4 w-4" />
+                Adjuntar fotografía de entrega
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0];
+                    if (archivo) {
+                      const lector = new FileReader();
+                      lector.onload = () => {
+                        if (typeof lector.result === 'string') {
+                          setFotoEntregaUrl(lector.result);
+                        }
+                      };
+                      lector.readAsDataURL(archivo);
+                    }
+                  }}
+                />
+              </label>
+              <p className="mt-1.5 text-xs text-gray-500">
+                Opcional: foto del estado del toldo y montaje en el sitio de entrega.
+              </p>
+            </div>
+          )}
         </div>
 
         <CampoTextoArea
@@ -766,6 +967,7 @@ function DetalleAlquiler({
 }) {
   const toldos = useAppStore((s) => s.toldos);
   const tasaBs = useAppStore((s) => s.config.tasaBs);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const saldo = calcularSaldo(alquiler.montoTotal, alquiler.abono);
   const nombreToldo = (id: string) => toldos.find((t) => t.id === id)?.nombre ?? 'Toldo eliminado';
   const fila = (clave: string, valor: string) => (
@@ -805,7 +1007,7 @@ function DetalleAlquiler({
       </div>
 
       <div>
-        <p className="label">Toldos</p>
+        <p className="label">Toldos y servicios</p>
         <ul className="space-y-1">
           {alquiler.items.map((item, i) => (
             <li key={i} className="text-sm text-gray-300">
@@ -819,6 +1021,11 @@ function DetalleAlquiler({
               )}
             </li>
           ))}
+          {alquiler.flete !== undefined && alquiler.flete > 0 && (
+            <li className="text-sm font-medium text-cyan-300">
+              Flete / Traslado — {formatearMonto(alquiler.flete, moneda)}
+            </li>
+          )}
         </ul>
       </div>
 
@@ -838,6 +1045,45 @@ function DetalleAlquiler({
           </span>
         </p>
       </div>
+
+      {alquiler.fotoEntregaUrl && (
+        <div>
+          <p className="label">Comprobante de entrega</p>
+          <div
+            className="group relative mt-1 cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-black/30"
+            onClick={() => setFotoAmpliada(true)}
+          >
+            <img
+              src={alquiler.fotoEntregaUrl}
+              alt="Comprobante de entrega"
+              className="h-44 w-full object-cover transition group-hover:scale-105"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+              <span className="flex items-center gap-1.5 rounded-lg bg-black/75 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                <ZoomIn className="h-3.5 w-3.5" />
+                Ver en tamaño completo
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fotoAmpliada && alquiler.fotoEntregaUrl && (
+        <Modal titulo="Comprobante de entrega" alCerrar={() => setFotoAmpliada(false)} anchoMaximo="max-w-2xl">
+          <div className="space-y-3">
+            <img
+              src={alquiler.fotoEntregaUrl}
+              alt="Comprobante de entrega completo"
+              className="max-h-[75vh] w-full rounded-xl object-contain"
+            />
+            <div className="flex justify-end">
+              <button className="btn-secundario" onClick={() => setFotoAmpliada(false)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {alquiler.notas && <p className="text-sm text-gray-400">{alquiler.notas}</p>}
 
@@ -945,10 +1191,12 @@ function EmitirRecibo({
         fechaInicio: alquiler.fechaInicio,
         fechaFin: alquiler.fechaFin,
         tiempoUso: alquiler.tiempoUso,
+        creadoEn: alquiler.creadoEn,
         direccion: alquiler.direccion,
         referenciaUbicacion: alquiler.referenciaUbicacion ?? '',
         lat: alquiler.lat,
         lng: alquiler.lng,
+        flete: alquiler.flete,
         montoTotal: alquiler.montoTotal,
         abono: alquiler.abono
       }

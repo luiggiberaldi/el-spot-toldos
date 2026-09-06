@@ -76,6 +76,8 @@ class BackupManager(private val context: Context, private val repository: AppRep
                     put("referenciaUbicacion", rental.referenciaUbicacion)
                     put("lat", rental.latitud ?: JSONObject.NULL)
                     put("lng", rental.longitud ?: JSONObject.NULL)
+                    put("flete", rental.fleteCents / 100.0)
+                    put("fotoEntregaUri", rental.fotoEntregaUri)
                     put("montoTotal", rental.montoTotalCents / 100.0)
                     put("abono", rental.abonoCents / 100.0)
                     put("estado", rental.statusForExport())
@@ -214,6 +216,8 @@ class BackupManager(private val context: Context, private val repository: AppRep
                 referenciaUbicacion = item.optString("referenciaUbicacion"),
                 latitud = item.optDoubleOrNull("lat"),
                 longitud = item.optDoubleOrNull("lng"),
+                fleteCents = amountToCents(item, "flete"),
+                fotoEntregaUri = item.optString("fotoEntregaUri"),
                 montoTotalCents = total,
                 abonoCents = amountToCents(item, "abono").coerceIn(0, total),
                 estado = RentalStatus.from(item.optString("estado")).name,

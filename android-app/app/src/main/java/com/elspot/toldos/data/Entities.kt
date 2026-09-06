@@ -41,6 +41,10 @@ data class AlquilerEntity(
     val longitud: Double?,
     /** Referencia libre de ubicación (punto de entrega), opcional. Migración 5→6. */
     val referenciaUbicacion: String = "",
+    /** Costo opcional de traslado o flete en centavos. Migración 6→7. */
+    val fleteCents: Long = 0L,
+    /** Ruta de la foto del comprobante de entrega en almacenamiento privado. Migración 6→7. */
+    val fotoEntregaUri: String = "",
     val montoTotalCents: Long,
     val abonoCents: Long,
     val estado: String,

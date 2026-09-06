@@ -96,6 +96,18 @@ class ReceiptPdfService(private val context: Context) {
             drawText(canvas, paint, centsToDollarText(tariff * item.quantity), pageWidth - margin - 10f, y + 20f, 10f, text, false, true)
             y += rowHeight
         }
+        if (snapshot.fleteCents > 0L) {
+            val rowHeight = 31f
+            if (snapshot.items.size % 2 == 0) {
+                paint.color = pale
+                canvas.drawRect(margin, y, pageWidth - margin, y + rowHeight, paint)
+            }
+            drawText(canvas, paint, "Flete / Transporte del servicio", margin + 12f, y + 20f, 10f, text, false)
+            drawText(canvas, paint, "1", pageWidth - 190f, y + 20f, 10f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - 112f, y + 20f, 10f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - margin - 10f, y + 20f, 10f, text, false, true)
+            y += rowHeight
+        }
         paint.color = border
         paint.strokeWidth = 1f
         canvas.drawLine(margin, y, pageWidth - margin, y, paint)
@@ -239,6 +251,9 @@ class ReceiptPdfService(private val context: Context) {
     private fun buildRentalFields(snapshot: ReceiptSnapshot): List<Pair<String, String>> = buildList {
         add("FOLIO DE ALQUILER" to snapshot.rentalFolio)
         add("MODALIDAD" to snapshot.mode.label)
+        if (snapshot.returnAt > 0L) {
+            add("ENTREGA DEL TOLDO" to formatDateTime(snapshot.returnAt))
+        }
         val eventAddressValue = when {
             snapshot.eventAddress.isNotBlank() -> snapshot.eventAddress
             snapshot.eventReference.isNotBlank() -> snapshot.eventReference
@@ -357,6 +372,8 @@ class ReceiptPdfService(private val context: Context) {
             appendLine("Hola ${capitalizeWords(snapshot.clientName)},")
             appendLine("Adjuntamos el recibo correspondiente a tu alquiler de toldo.")
             appendLine("Modalidad: ${snapshot.mode.label}")
+            if (snapshot.fleteCents > 0L) appendLine("Flete / Transporte: ${centsToDollarText(snapshot.fleteCents)}")
+            if (snapshot.returnAt > 0L) appendLine("Entrega del toldo: ${formatDateTime(snapshot.returnAt)}")
             appendLine("Monto: ${centsToDollarText(snapshot.amountCents)}")
             if (bs.isNotBlank()) appendLine("Equivalente: $bs")
             if (snapshot.eventAddress.isNotBlank()) appendLine("Dirección: ${snapshot.eventAddress}")

@@ -9,9 +9,13 @@ import com.elspot.toldos.data.ToldoEntity
 /** Tarifa efectiva de una línea de alquiler. */
 fun effectiveTariffCents(baseCents: Long, mode: RentalMode = RentalMode.H24): Long = baseCents
 
-/** Total calculado desde las líneas del alquiler. Cada línea ya contiene la tarifa unitaria correspondiente a la modalidad seleccionada. */
-fun calculateRentalTotal(items: List<com.elspot.toldos.data.RentalItemDraft>, mode: RentalMode = RentalMode.H24): Long {
-    return items.sumOf { it.tariffCents * it.quantity.toLong() }
+/** Total calculado desde las líneas del alquiler más flete opcional. Cada línea ya contiene la tarifa unitaria correspondiente a la modalidad seleccionada. */
+fun calculateRentalTotal(
+    items: List<com.elspot.toldos.data.RentalItemDraft>,
+    mode: RentalMode = RentalMode.H24,
+    fleteCents: Long = 0L
+): Long {
+    return items.sumOf { it.tariffCents * it.quantity.toLong() } + fleteCents.coerceAtLeast(0L)
 }
 
 /**
@@ -63,7 +67,8 @@ fun validateRentalDraft(
     if (draft.items.any { it.quantity > tentsById.getValue(it.tentId).unidades.coerceAtLeast(1) }) {
         return "La cantidad solicitada supera las unidades registradas del toldo."
     }
-    val calculatedTotal = calculateRentalTotal(draft.items, draft.mode)
+    if (draft.fleteCents < 0L) return "El costo de flete no puede ser negativo."
+    val calculatedTotal = calculateRentalTotal(draft.items, draft.mode, draft.fleteCents)
     if (draft.depositCents !in 0L..calculatedTotal) {
         return "El abono no puede superar el total."
     }

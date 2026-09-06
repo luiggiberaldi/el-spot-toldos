@@ -46,6 +46,7 @@ class RentalRulesTest {
     @Test
     fun calculateRentalTotalSumsAllItemLines() {
         assertEquals(20_000L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 2, 10_000L)), RentalMode.H24))
+        assertEquals(25_000L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 2, 10_000L)), RentalMode.H24, fleteCents = 5_000L))
         assertEquals(7_500L, calculateRentalTotal(listOf(RentalItemDraft("tent-1", 1, 7_500L)), RentalMode.H12))
         assertEquals(7_500L, effectiveTariffCents(7_500L, RentalMode.H12))
         assertEquals(7_500L, effectiveTariffCents(7_500L, RentalMode.H24))

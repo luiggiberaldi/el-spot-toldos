@@ -1,8 +1,8 @@
 {
-  "versionCode": 12,
-  "versionName": "1.1.0",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.1.0/el-spot-toldos-1.1.0.apk",
+  "versionCode": 13,
+  "versionName": "1.2.0",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.0/el-spot-toldos-1.2.0.apk",
   "sha256": "105e8c9167a1251d7f310372159acf283525eba9662550b547680ffa89d12e60",
-  "notes": "Recibo PDF profesional: dirección manual prioritaria (desacoplada de GPS), soporte multilínea dinámico sin recortes de texto, nuevo pie de página formal y centrado, y eliminación de textos redundantes.",
+  "notes": "Modal de alquiler en pantalla completa, alta rápida de clientes desde el formulario, costo opcional de flete/transporte, recordatorios configurables de devolución y comprobante fotográfico de entrega.",
   "mandatory": false
 }

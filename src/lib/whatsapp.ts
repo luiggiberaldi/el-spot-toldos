@@ -13,6 +13,9 @@ export function textoReciboWhatsApp(datos: DatosRecibo): string {
     `Cliente: ${datos.cliente.nombre}`,
     `Concepto: ${datos.concepto}`,
     `Monto: ${formatearMonto(datos.monto, datos.negocio.moneda)}`,
+    ...(datos.alquiler.flete && datos.alquiler.flete > 0
+      ? [`Flete / Traslado: ${formatearMonto(datos.alquiler.flete, datos.negocio.moneda)}`]
+      : []),
     ...(formatearBsEquivalente(datos.monto, datos.negocio.tasaBs)
       ? [`Equivalente: ${formatearBsEquivalente(datos.monto, datos.negocio.tasaBs)}`]
       : []),

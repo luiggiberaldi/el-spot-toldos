@@ -72,6 +72,10 @@ export interface Alquiler {
   /** Coordenadas GPS capturadas en el sitio (opcional). */
   lat?: number;
   lng?: number;
+  /** Costo opcional de flete o transporte en la moneda configurada. */
+  flete?: number;
+  /** Foto comprobante de entrega en formato Data URL o URL local. */
+  fotoEntregaUrl?: string;
   montoTotal: number;
   abono: number;
   estado: EstadoAlquiler;
@@ -121,11 +125,14 @@ export interface DatosRecibo {
     modalidad: ModalidadAlquiler;
     fechaInicio?: string;
     fechaFin?: string;
+    fechaDevolucion?: string;
+    creadoEn?: string;
     tiempoUso?: string;
     direccion: string;
     referenciaUbicacion?: string;
     lat?: number;
     lng?: number;
+    flete?: number;
     montoTotal: number;
     abono: number;
   };
