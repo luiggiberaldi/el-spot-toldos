@@ -227,7 +227,7 @@ private fun RentalFormDialog(initial: AlquilerEntity?, state: AppUiState, viewMo
     val location = remember { LocationService(context) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
-            scope.launch { capturing = true; locationError = null; try { val result = location.current(); latitude = result.latitude; longitude = result.longitude; if (address.isBlank() && !result.address.isNullOrBlank()) address = result.address } catch (t: Throwable) { locationError = t.message ?: "No se pudo obtener la ubicación." } finally { capturing = false } }
+            scope.launch { capturing = true; locationError = null; try { val result = location.current(); latitude = result.latitude; longitude = result.longitude } catch (t: Throwable) { locationError = t.message ?: "No se pudo obtener la ubicación." } finally { capturing = false } }
         } else locationError = "Permiso de ubicación denegado. Actívalo en los ajustes del dispositivo."
     }
     val totalCents = remember(lines.toList(), mode) {

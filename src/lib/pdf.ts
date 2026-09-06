@@ -2,7 +2,7 @@ import type { jsPDF } from 'jspdf';
 import type { DatosRecibo } from '../types/modelos';
 import { tarifaEfectiva } from './calculos';
 import { formatearBsEquivalente, formatearFechaCorta, formatearMonto } from './formato';
-import { enlaceMapa, formatearCoordenadas } from './geolocalizacion';
+import { formatearCoordenadas } from './geolocalizacion';
 import { nombreArchivoSeguro } from './venezuela';
 
 /** Generación del recibo digital en PDF A4 para EL SPOT. */
@@ -168,11 +168,14 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
     ...(datos.cliente.telefono ? [{ clave: 'Teléfono', valor: datos.cliente.telefono }] : []),
     ...(datos.cliente.direccion ? [{ clave: 'Dirección', valor: datos.cliente.direccion }] : [])
   ];
+  const direccionEvento = datos.alquiler.direccion?.trim() || datos.alquiler.referenciaUbicacion?.trim() || '';
   const camposServicio: Array<{ clave: string; valor: string }> = [
     { clave: 'Folio de alquiler', valor: datos.alquiler.folio },
     { clave: 'Modalidad', valor: datos.alquiler.modalidad === '12h' ? '12 horas' : '24 horas' },
-    ...(datos.alquiler.direccion ? [{ clave: 'Dirección del evento', valor: datos.alquiler.direccion }] : []),
-    ...(datos.alquiler.referenciaUbicacion ? [{ clave: 'Referencia', valor: datos.alquiler.referenciaUbicacion }] : []),
+    ...(direccionEvento ? [{ clave: 'Dirección del evento', valor: direccionEvento }] : []),
+    ...(datos.alquiler.direccion?.trim() && datos.alquiler.referenciaUbicacion?.trim()
+      ? [{ clave: 'Referencia', valor: datos.alquiler.referenciaUbicacion.trim() }]
+      : []),
     ...(datos.alquiler.lat !== undefined && datos.alquiler.lng !== undefined
       ? [{ clave: 'Ubicación GPS', valor: formatearCoordenadas(datos.alquiler.lat, datos.alquiler.lng) }]
       : [])
@@ -266,26 +269,23 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   }
   y += altoResumen + 9;
 
-  // Estado y referencia del cliente en una sola línea de lectura rápida.
-  const colorEstado = estadoPagado ? [22, 130, 90] as [number, number, number] : [180, 115, 10] as [number, number, number];
-  texto(doc, estadoPagado ? 'PAGADO' : 'POR PAGAR', MARGEN, y, { size: 9, color: colorEstado, bold: true });
-  texto(doc, `Cliente: ${datos.cliente.nombre || '—'}`, ANCHO_PAGINA - MARGEN, y, { size: 8.5, color: COLOR_TEXTO, bold: true, align: 'right' });
-  y += 6;
-  texto(doc, `Concepto: ${datos.concepto || 'Pago del alquiler'}`, MARGEN, y, { size: 7.5, color: COLOR_SUAVE });
+  // Pie de página profesional, organizado y centrado
+  const yPie = ALTO_PAGINA - 24;
+  doc.setDrawColor(...COLOR_BORDE);
+  doc.setLineWidth(0.3);
+  doc.line(MARGEN, yPie, ANCHO_PAGINA - MARGEN, yPie);
 
-  // Enlace de mapa en el pie del detalle, si existe GPS.
-  if (datos.alquiler.lat !== undefined && datos.alquiler.lng !== undefined) {
-    const enlace = enlaceMapa(datos.alquiler.lat, datos.alquiler.lng);
-    texto(doc, 'Ubicación verificable:', MARGEN, y + 7, { size: 7.5, color: COLOR_SUAVE });
-    doc.setTextColor(...COLOR_MARCA);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.textWithLink(enlace, MARGEN + 28, y + 7, { url: enlace });
-    y += 8;
-  }
+  const negocioNombre = datos.negocio.nombre || 'EL SPOT TOLDOS';
+  const negocioDetalles: string[] = [];
+  if (datos.negocio.rif) negocioDetalles.push(`RIF: ${datos.negocio.rif}`);
+  if (datos.negocio.telefono) negocioDetalles.push(`Tel: ${datos.negocio.telefono}`);
+  const lineaNegocio = negocioDetalles.length > 0
+    ? `${negocioNombre} · ${negocioDetalles.join(' · ')}`
+    : negocioNombre;
 
-  texto(doc, 'Este documento fue generado digitalmente.', ANCHO_PAGINA / 2, ALTO_PAGINA - 13, { size: 7, color: COLOR_SUAVE, align: 'center' });
-  texto(doc, 'Gracias por su preferencia.', ANCHO_PAGINA / 2, ALTO_PAGINA - 8, { size: 7, color: COLOR_SUAVE, align: 'center' });
+  texto(doc, lineaNegocio, ANCHO_PAGINA / 2, yPie + 6.5, { size: 8, color: COLOR_TEXTO, bold: true, align: 'center' });
+  texto(doc, 'Comprobante digital de servicio · Generado por el sistema', ANCHO_PAGINA / 2, yPie + 12, { size: 7, color: COLOR_SUAVE, align: 'center' });
+  texto(doc, '¡Gracias por su preferencia y confianza!', ANCHO_PAGINA / 2, yPie + 17.5, { size: 7.5, color: COLOR_MARCA, bold: true, align: 'center' });
 
   return doc;
 }

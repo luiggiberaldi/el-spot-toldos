@@ -16,6 +16,17 @@
 
 ---
 
+## v1.1.0 — 2026-09-06 — `Mejora`
+
+### Recibo PDF profesional: dirección manual prioritaria, multilínea dinámico y nuevo footer centrado
+
+- **Dirección del evento (APK y PWA)**: la captura de ubicación GPS se desacopló del campo de dirección manual. El botón GPS ahora registra exclusivamente latitud y longitud sin sobreescribir ni inyectar cadenas de geocodificación técnica (como Plus Codes de OSM o Geocoder). En el recibo PDF se muestra la dirección o referencia ingresada manualmente por el usuario.
+- **Soporte multilínea sin cortes (APK)**: se eliminó el recorte brusco a 41 caracteres (`.take(41)`); ahora el texto fluye de 1 a 2 líneas fluidas y la altura de las tarjetas de cliente y servicio se calcula dinámicamente (`measureCardHeight`), evitando desbordes o textos amputados.
+- **Pie de página (footer) organizado y centrado (APK y PWA)**: nueva línea divisoria formal, identificación comercial (`EL SPOT TOLDOS` · RIF · Teléfono), nota de autenticidad digital y mensaje de agradecimiento centrado.
+- **Eliminación de textos redundantes (APK y PWA)**: se removió el bloque residual repetido al pie del desglose de pago (`PAGADO`, `Cliente: ...`, `Concepto: ...`), limpiando la jerarquía visual del documento.
+- **Modalidad normalizada (APK y PWA)**: se corrigió la etiqueta repetitiva (`24 horas · 24 h` → `24 horas`).
+- **Validación completa**: suite de pruebas Android (`gradlew test`), pruebas Web (`vitest` 58/58 tests) y compilación de producción Vite PWA en verde.
+
 ## v1.0.10 — 2026-09-05 — `Cambio`
 
 ### Ubicación: fuera el botón "Ubicación manual", dentro la referencia opcional

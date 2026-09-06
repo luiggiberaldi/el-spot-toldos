@@ -4,7 +4,6 @@ import { generarId } from '../../lib/ids';
 import { calcularSaldo, redondearMonto } from '../../lib/calculos';
 import { formatearFechaCorta, formatearMonto, formatearMontoDual } from '../../lib/formato';
 import { enlaceMapa, formatearCoordenadas, obtenerUbicacion } from '../../lib/geolocalizacion';
-import { direccionDesdeUbicacion } from '../../lib/geocodificacion';
 import { puedeCambiarEstadoAlquiler, unidadesDisponibles } from '../../lib/validaciones';
 import { validarMontoPago } from '../../lib/pagos';
 import type { Alquiler, DatosRecibo, EstadoAlquiler, EstadoRecibo, ModalidadAlquiler } from '../../types/modelos';
@@ -358,8 +357,6 @@ function FormularioAlquiler({
       const ubicacion = await obtenerUbicacion();
       setLat(ubicacion.lat);
       setLng(ubicacion.lng);
-      const direccionDetectada = await direccionDesdeUbicacion(ubicacion);
-      if (direccionDetectada && !direccion.trim()) setDireccion(direccionDetectada);
     } catch (e) {
       setErrorGps(e instanceof Error ? e.message : 'No se pudo obtener la ubicación.');
     } finally {

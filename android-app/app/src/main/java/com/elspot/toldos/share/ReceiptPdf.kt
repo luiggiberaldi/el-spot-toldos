@@ -59,11 +59,16 @@ class ReceiptPdfService(private val context: Context) {
 
         val cardGap = 14f
         val cardWidth = (contentWidth - cardGap) / 2f
-        val cardHeight = 166f
+        val clientFields = buildClientFields(snapshot)
+        val rentalFields = buildRentalFields(snapshot)
+        val clientHeight = measureCardHeight(paint, clientFields, cardWidth - 28f)
+        val rentalHeight = measureCardHeight(paint, rentalFields, cardWidth - 28f)
+        val cardHeight = maxOf(166f, clientHeight, rentalHeight)
+
         drawCard(canvas, paint, margin, y, cardWidth, cardHeight)
         drawCard(canvas, paint, margin + cardWidth + cardGap, y, cardWidth, cardHeight)
-        drawClientCard(canvas, paint, snapshot, margin, y, cardWidth)
-        drawRentalCard(canvas, paint, snapshot, margin + cardWidth + cardGap, y, cardWidth)
+        drawCardSection(canvas, paint, "CLIENTE", clientFields, margin, y, cardWidth)
+        drawCardSection(canvas, paint, "DETALLE DEL SERVICIO", rentalFields, margin + cardWidth + cardGap, y, cardWidth)
         y += cardHeight + 24f
 
         drawText(canvas, paint, "CONCEPTOS DEL ALQUILER", margin, y, 10f, primary, true)
@@ -131,21 +136,21 @@ class ReceiptPdfService(private val context: Context) {
         drawAmountRow(canvas, paint, "Pendiente", centsToDollarText(balance), rightX, summaryTop + 93f, if (balance > 0) android.graphics.Color.rgb(190, 65, 30) else android.graphics.Color.rgb(22, 130, 90), true)
         y = summaryTop + summaryHeight + 25f
 
-        // El sello de pie acompaña la semántica del recuadro: si este recibo salda el alquiler, se muestra PAGADO.
-        val settledHere = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
-        val footStatus = if (settledHere) ReceiptPaymentStatus.PAID else snapshot.paymentStatus
-        val stateColor = if (footStatus == ReceiptPaymentStatus.PAID) android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
-        drawText(canvas, paint, footStatus.label.uppercase(), margin, y, 11f, stateColor, true)
-        drawText(canvas, paint, "Cliente: ${snapshot.clientName.ifBlank { "—" }}", pageWidth - margin, y, 10f, text, true, true)
-        y += 21f
-        drawText(canvas, paint, "Concepto: ${snapshot.concept.ifBlank { "Pago del alquiler" }}", margin, y, 9f, muted)
-        y += 18f
-        if (snapshot.latitude != null && snapshot.longitude != null) {
-            drawText(canvas, paint, "Ubicación: ${snapshot.latitude}, ${snapshot.longitude}", margin, y, 8.5f, muted)
-        }
+        // Pie de página profesional, organizado y centrado
+        val footerLineY = 760f
+        paint.color = border
+        paint.strokeWidth = 1f
+        canvas.drawLine(margin, footerLineY, pageWidth - margin, footerLineY, paint)
 
-        drawText(canvas, paint, "Este documento fue generado digitalmente.", pageWidth / 2f, 812f, 8f, muted, false, true)
-        drawText(canvas, paint, "Gracias por su preferencia.", pageWidth / 2f, 828f, 8f, muted, false, true)
+        val bizName = snapshot.businessName.ifBlank { "EL SPOT TOLDOS" }
+        val bizMeta = buildList {
+            if (snapshot.businessRif.isNotBlank()) add("RIF: ${snapshot.businessRif}")
+            if (snapshot.businessPhone.isNotBlank()) add("Tel: ${snapshot.businessPhone}")
+        }
+        val headerText = if (bizMeta.isEmpty()) bizName else "$bizName · ${bizMeta.joinToString(" · ")}"
+        drawText(canvas, paint, headerText, pageWidth / 2f, 782f, 9.5f, text, bold = true, center = true)
+        drawText(canvas, paint, "Comprobante digital de servicio · Generado por el sistema", pageWidth / 2f, 799f, 8f, muted, center = true)
+        drawText(canvas, paint, "¡Gracias por su preferencia y confianza!", pageWidth / 2f, 815f, 9f, primary, bold = true, center = true)
 
         document.finishPage(page)
         FileOutputStream(file).use { document.writeTo(it) }
@@ -224,31 +229,70 @@ class ReceiptPdfService(private val context: Context) {
         return 135f
     }
 
-    private fun drawClientCard(canvas: Canvas, paint: Paint, snapshot: ReceiptSnapshot, x: Float, y: Float, width: Float) {
-        var current = y + 25f
-        drawText(canvas, paint, "CLIENTE", x + 14f, current, 9f, primary, true)
-        paint.color = border
-        paint.strokeWidth = 1f
-        canvas.drawLine(x + 14f, current + 9f, x + width - 14f, current + 9f, paint)
-        current += 29f
-        current = drawCardField(canvas, paint, "NOMBRE", capitalizeWords(snapshot.clientName).ifBlank { "—" }, x + 14f, current, width - 28f)
-        if (snapshot.clientDocument.isNotBlank()) current = drawCardField(canvas, paint, "DOCUMENTO", snapshot.clientDocument, x + 14f, current, width - 28f)
-        if (snapshot.clientPhone.isNotBlank()) current = drawCardField(canvas, paint, "TELÉFONO", snapshot.clientPhone, x + 14f, current, width - 28f)
-        if (snapshot.clientAddress.isNotBlank()) drawCardField(canvas, paint, "DIRECCIÓN", snapshot.clientAddress, x + 14f, current, width - 28f)
+    private fun buildClientFields(snapshot: ReceiptSnapshot): List<Pair<String, String>> = buildList {
+        add("NOMBRE" to capitalizeWords(snapshot.clientName).ifBlank { "—" })
+        if (snapshot.clientDocument.isNotBlank()) add("DOCUMENTO" to snapshot.clientDocument)
+        if (snapshot.clientPhone.isNotBlank()) add("TELÉFONO" to snapshot.clientPhone)
+        if (snapshot.clientAddress.isNotBlank()) add("DIRECCIÓN" to snapshot.clientAddress)
     }
 
-    private fun drawRentalCard(canvas: Canvas, paint: Paint, snapshot: ReceiptSnapshot, x: Float, y: Float, width: Float) {
+    private fun buildRentalFields(snapshot: ReceiptSnapshot): List<Pair<String, String>> = buildList {
+        add("FOLIO DE ALQUILER" to snapshot.rentalFolio)
+        add("MODALIDAD" to snapshot.mode.label)
+        val eventAddressValue = when {
+            snapshot.eventAddress.isNotBlank() -> snapshot.eventAddress
+            snapshot.eventReference.isNotBlank() -> snapshot.eventReference
+            else -> ""
+        }
+        if (eventAddressValue.isNotBlank()) add("DIRECCIÓN DEL EVENTO" to eventAddressValue)
+        if (snapshot.eventAddress.isNotBlank() && snapshot.eventReference.isNotBlank()) {
+            add("REFERENCIA" to snapshot.eventReference)
+        }
+        if (snapshot.latitude != null && snapshot.longitude != null) {
+            add("UBICACIÓN GPS" to "${snapshot.latitude}, ${snapshot.longitude}")
+        }
+    }
+
+    private fun wrapText(paint: Paint, text: String, maxWidth: Float): List<String> {
+        if (paint.measureText(text) <= maxWidth) return listOf(text)
+        val words = text.split(" ")
+        val lines = mutableListOf<String>()
+        var currentLine = StringBuilder()
+        for (word in words) {
+            val candidate = if (currentLine.isEmpty()) word else "$currentLine $word"
+            if (paint.measureText(candidate) <= maxWidth) {
+                currentLine = StringBuilder(candidate)
+            } else {
+                if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
+                currentLine = StringBuilder(word)
+            }
+        }
+        if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
+        return lines
+    }
+
+    private fun measureCardHeight(paint: Paint, fields: List<Pair<String, String>>, contentWidth: Float): Float {
+        paint.textSize = 9.5f
+        paint.typeface = Typeface.DEFAULT
+        var total = 25f + 29f
+        for ((_, value) in fields) {
+            val lines = wrapText(paint, value.replace("\n", " ").trim().ifBlank { "—" }, contentWidth)
+            val lineCount = lines.size.coerceIn(1, 2)
+            total += 14f + (lineCount * 13f) + 4f
+        }
+        return total + 10f
+    }
+
+    private fun drawCardSection(canvas: Canvas, paint: Paint, title: String, fields: List<Pair<String, String>>, x: Float, y: Float, width: Float) {
         var current = y + 25f
-        drawText(canvas, paint, "DETALLE DEL SERVICIO", x + 14f, current, 9f, primary, true)
+        drawText(canvas, paint, title, x + 14f, current, 9f, primary, true)
         paint.color = border
         paint.strokeWidth = 1f
         canvas.drawLine(x + 14f, current + 9f, x + width - 14f, current + 9f, paint)
         current += 29f
-        current = drawCardField(canvas, paint, "FOLIO DE ALQUILER", snapshot.rentalFolio, x + 14f, current, width - 28f)
-        current = drawCardField(canvas, paint, "MODALIDAD", "${snapshot.mode.label} · ${snapshot.mode.hours} h", x + 14f, current, width - 28f)
-        if (snapshot.eventAddress.isNotBlank()) current = drawCardField(canvas, paint, "DIRECCIÓN DEL EVENTO", snapshot.eventAddress, x + 14f, current, width - 28f)
-        if (snapshot.eventReference.isNotBlank()) current = drawCardField(canvas, paint, "REFERENCIA", snapshot.eventReference, x + 14f, current, width - 28f)
-        if (snapshot.latitude != null && snapshot.longitude != null) drawCardField(canvas, paint, "UBICACIÓN GPS", "${snapshot.latitude}, ${snapshot.longitude}", x + 14f, current, width - 28f)
+        for ((label, value) in fields) {
+            current = drawCardField(canvas, paint, label, value, x + 14f, current, width - 28f)
+        }
     }
 
     private fun drawCard(canvas: Canvas, paint: Paint, x: Float, y: Float, width: Float, height: Float) {
@@ -264,9 +308,14 @@ class ReceiptPdfService(private val context: Context) {
 
     private fun drawCardField(canvas: Canvas, paint: Paint, label: String, value: String, x: Float, y: Float, width: Float): Float {
         drawText(canvas, paint, label, x, y, 7f, muted, true)
-        val clipped = value.replace("\n", " ").take(41)
-        drawText(canvas, paint, clipped.ifBlank { "—" }, x, y + 14f, 9.5f, text)
-        return y + 27f
+        paint.textSize = 9.5f
+        paint.typeface = Typeface.DEFAULT
+        val lines = wrapText(paint, value.replace("\n", " ").trim().ifBlank { "—" }, width)
+        val visibleLines = lines.take(2)
+        visibleLines.forEachIndexed { index, line ->
+            drawText(canvas, paint, line, x, y + 14f + (index * 13f), 9.5f, text)
+        }
+        return y + 14f + (visibleLines.size * 13f) + 4f
     }
 
     private fun drawAmountRow(canvas: Canvas, paint: Paint, label: String, value: String, right: Float, y: Float, color: Int, bold: Boolean) {
@@ -274,12 +323,16 @@ class ReceiptPdfService(private val context: Context) {
         drawText(canvas, paint, value, right, y, 10f, color, bold, true)
     }
 
-    private fun drawText(canvas: Canvas, paint: Paint, value: String, x: Float, y: Float, size: Float, color: Int, bold: Boolean = false, alignRight: Boolean = false) {
+    private fun drawText(canvas: Canvas, paint: Paint, value: String, x: Float, y: Float, size: Float, color: Int, bold: Boolean = false, alignRight: Boolean = false, center: Boolean = false) {
         paint.style = Paint.Style.FILL
         paint.color = color
         paint.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         paint.textSize = size
-        paint.textAlign = if (alignRight) Paint.Align.RIGHT else Paint.Align.LEFT
+        paint.textAlign = when {
+            center -> Paint.Align.CENTER
+            alignRight -> Paint.Align.RIGHT
+            else -> Paint.Align.LEFT
+        }
         canvas.drawText(value, x, y, paint)
         paint.textAlign = Paint.Align.LEFT
     }
