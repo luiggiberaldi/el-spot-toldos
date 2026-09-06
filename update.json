@@ -2,7 +2,7 @@
   "versionCode": 13,
   "versionName": "1.2.0",
   "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.0/el-spot-toldos-1.2.0.apk",
-  "sha256": "105e8c9167a1251d7f310372159acf283525eba9662550b547680ffa89d12e60",
+  "sha256": "661fbd7aa345491f2366a0078242003704cfb44d020a1027707c1ac9e3685e53",
   "notes": "Modal de alquiler en pantalla completa, alta rápida de clientes desde el formulario, costo opcional de flete/transporte, recordatorios configurables de devolución y comprobante fotográfico de entrega.",
   "mandatory": false
 }
