@@ -1,7 +1,7 @@
 import type { jsPDF } from 'jspdf';
 import type { DatosRecibo } from '../types/modelos';
 import { tarifaEfectiva } from './calculos';
-import { formatearBsEquivalente, formatearFechaCorta, formatearFechaHora, formatearMonto } from './formato';
+import { formatearFechaCorta, formatearFechaHora, formatearMonto } from './formato';
 import { formatearCoordenadas } from './geolocalizacion';
 import { nombreArchivoSeguro } from './venezuela';
 
@@ -132,7 +132,8 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   const moneda = datos.negocio.moneda;
   doc.setFillColor(...COLOR_PAGINA);
   doc.rect(0, 0, ANCHO_PAGINA, ALTO_PAGINA, 'F');
-  const estadoPagado = datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal);
+  const saldoPendiente = Math.max(0, datos.alquiler.montoTotal - datos.alquiler.abono);
+  const estadoPagado = datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && saldoPendiente === 0);
 
   // Cabecera clara con el logo exclusivo del PDF centrado.
   const altoHeader = 49;
@@ -147,9 +148,28 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
       doc.addImage(logo.dataUrl, logo.formato, (ANCHO_PAGINA - anchoLogo) / 2, 5, anchoLogo, altoLogo);
     }
   }
+
   texto(doc, `RECIBO N° ${datos.folio}`, ANCHO_PAGINA - MARGEN, 17, { size: 10.5, color: COLOR_TEXTO, bold: true, align: 'right' });
-  texto(doc, `Emitido el ${formatearFechaCorta(datos.emitidoEn)}`, ANCHO_PAGINA - MARGEN, 24, { size: 7.5, color: COLOR_SUAVE, align: 'right' });
-  texto(doc, estadoPagado ? 'PAGADO' : 'POR PAGAR', ANCHO_PAGINA - MARGEN, 32, { size: 8.5, color: estadoPagado ? [22, 130, 90] : [180, 115, 10], bold: true, align: 'right' });
+  texto(doc, `Emitido el ${formatearFechaCorta(datos.emitidoEn)}`, ANCHO_PAGINA - MARGEN, 23.5, { size: 7.5, color: COLOR_SUAVE, align: 'right' });
+
+  const textoBadge = estadoPagado ? 'PAGADO TOTALMENTE' : `SE DEBE: ${formatearMonto(saldoPendiente, moneda)}`;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  const anchoBadge = doc.getTextWidth(textoBadge) + 9;
+  const xBadge = ANCHO_PAGINA - MARGEN - anchoBadge;
+  const yBadge = 27.5;
+  if (estadoPagado) {
+    doc.setFillColor(236, 253, 245);
+    doc.setDrawColor(167, 243, 208);
+    doc.setTextColor(4, 120, 87);
+  } else {
+    doc.setFillColor(254, 242, 242);
+    doc.setDrawColor(254, 202, 202);
+    doc.setTextColor(185, 28, 28);
+  }
+  doc.setLineWidth(0.3);
+  doc.roundedRect(xBadge, yBadge, anchoBadge, 6.5, 3, 3, 'FD');
+  doc.text(textoBadge, xBadge + anchoBadge / 2, yBadge + 4.6, { align: 'center' });
 
   let y = altoHeader + 9;
   doc.setFillColor(...COLOR_MARCA);
@@ -170,17 +190,26 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   ];
   const direccionEvento = datos.alquiler.direccion?.trim() || datos.alquiler.referenciaUbicacion?.trim() || '';
   let fechaEntrega = '';
+  if (datos.alquiler.fechaInicio) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.fechaInicio);
+  } else if (datos.alquiler.creadoEn) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.creadoEn);
+  } else {
+    fechaEntrega = formatearFechaHora(datos.emitidoEn);
+  }
+
+  let fechaDevolucion = '';
   if (datos.alquiler.fechaDevolucion) {
-    fechaEntrega = formatearFechaHora(datos.alquiler.fechaDevolucion);
+    fechaDevolucion = formatearFechaHora(datos.alquiler.fechaDevolucion);
   } else if (datos.alquiler.fechaFin) {
-    fechaEntrega = formatearFechaHora(datos.alquiler.fechaFin);
+    fechaDevolucion = formatearFechaHora(datos.alquiler.fechaFin);
   } else {
     const baseFecha = datos.alquiler.fechaInicio || datos.alquiler.creadoEn || datos.emitidoEn;
     if (baseFecha) {
       const horas = datos.alquiler.modalidad === '12h' ? 12 : 24;
       const ms = new Date(baseFecha).getTime() + horas * 3600 * 1000;
       if (!isNaN(ms)) {
-        fechaEntrega = formatearFechaHora(new Date(ms).toISOString());
+        fechaDevolucion = formatearFechaHora(new Date(ms).toISOString());
       }
     }
   }
@@ -188,7 +217,8 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   const camposServicio: Array<{ clave: string; valor: string }> = [
     { clave: 'Folio de alquiler', valor: datos.alquiler.folio },
     { clave: 'Modalidad', valor: datos.alquiler.modalidad === '12h' ? '12 horas' : '24 horas' },
-    ...(fechaEntrega ? [{ clave: 'Entrega del toldo', valor: fechaEntrega }] : []),
+    ...(fechaEntrega ? [{ clave: 'Fecha de entrega', valor: fechaEntrega }] : []),
+    ...(fechaDevolucion ? [{ clave: 'Fecha de devolución', valor: fechaDevolucion }] : []),
     ...(direccionEvento ? [{ clave: 'Dirección del evento', valor: direccionEvento }] : []),
     ...(datos.alquiler.direccion?.trim() && datos.alquiler.referenciaUbicacion?.trim()
       ? [{ clave: 'Referencia', valor: datos.alquiler.referenciaUbicacion.trim() }]
@@ -213,7 +243,7 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   camposServicio.forEach((campo) => {
     yAlquiler = campoTarjeta(doc, campo.clave, campo.valor, MARGEN + anchoTarjeta + 11, yAlquiler, anchoCamposTarjeta);
   });
-  y += altoTarjeta + 10;
+  y += altoTarjeta + 8;
 
   // Tabla de conceptos.
   texto(doc, 'CONCEPTOS DEL ALQUILER', MARGEN, y, { size: 8, color: COLOR_MARCA, bold: true });
@@ -231,7 +261,6 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   texto(doc, 'SUBTOTAL', xSubtotal - 4, y + 5.2, { size: 7.5, color: [255, 255, 255], bold: true, align: 'right' });
   y += 8;
 
-  const factor = datos.alquiler.modalidad === '12h' ? 0.5 : 1;
   datos.alquiler.items.forEach((item, index) => {
     const lineas = ajustarTexto(doc, item.nombre, anchoDesc - 8);
     const altoFila = Math.max(9, lineas.length * 3.6 + 5);
@@ -261,42 +290,68 @@ export async function generarPdfRecibo(datos: DatosRecibo): Promise<jsPDF> {
   doc.setDrawColor(...COLOR_BORDE);
   doc.setLineWidth(0.25);
   doc.line(xTabla, y, xTabla + ANCHO_CONTENIDO, y);
-  if (factor === 0.5) {
-    texto(doc, 'Modalidad de 12 horas: tarifa equivalente al 50% de la tarifa base de 24 horas.', MARGEN, y + 5, { size: 7, color: COLOR_SUAVE });
-    y += 9;
-  } else {
-    y += 5;
-  }
+  y += 7;
 
-  // Resumen financiero: monto principal y desglose separados.
-  const anchoResumen = 82;
+  // Resumen financiero refinado
+  const anchoResumen = 80;
   const xResumen = ANCHO_PAGINA - MARGEN - anchoResumen;
-  const altoResumen = 38;
+  const altoResumen = 36;
+  const saldado = estadoPagado;
+
+  // Tarjeta izquierda: Comprobante del monto de este recibo
+  const xPago = MARGEN;
+  const anchoPago = ANCHO_CONTENIDO - anchoResumen - 5;
+  const bgPago: [number, number, number] = saldado ? [240, 253, 244] : [248, 250, 252];
+  const bordePago: [number, number, number] = saldado ? [187, 247, 208] : [226, 232, 240];
+  const colorAcento: [number, number, number] = saldado ? [22, 130, 90] : COLOR_MARCA;
+  const colorMonto: [number, number, number] = saldado ? [20, 83, 45] : COLOR_TEXTO;
+
+  doc.setFillColor(...bgPago);
+  doc.setDrawColor(...bordePago);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(xPago, y, anchoPago, altoResumen, 2.5, 2.5, 'FD');
+
+  doc.setFillColor(...colorAcento);
+  doc.roundedRect(xPago, y + 2, 1.2, altoResumen - 4, 0.6, 0.6, 'F');
+
+  const etiquetaRecuadro = saldado ? 'MONTO CANCELADO (SALDADO)' : 'MONTO REGISTRADO EN ESTE RECIBO';
+  texto(doc, etiquetaRecuadro, xPago + 6, y + 8, { size: 7, color: colorAcento, bold: true });
+  texto(doc, formatearMonto(datos.monto, moneda), xPago + 6, y + 20, { size: 17, color: colorMonto, bold: true });
+
+  const tagEstado = saldado
+    ? 'Comprobante de pago · Equipo solvente'
+    : 'Abono registrado a cuenta';
+  texto(doc, tagEstado, xPago + 6, y + 29, { size: 7, color: COLOR_SUAVE });
+
+  // Tarjeta derecha: Resumen de cuenta contable
   doc.setFillColor(...COLOR_FONDO);
   doc.setDrawColor(...COLOR_BORDE);
+  doc.setLineWidth(0.25);
   doc.roundedRect(xResumen, y, anchoResumen, altoResumen, 2.5, 2.5, 'FD');
-  montoFila(doc, 'Total del alquiler', formatearMonto(datos.alquiler.montoTotal, moneda), xResumen + 6, y + 9, anchoResumen - 12);
-  montoFila(doc, 'Abono recibido', formatearMonto(datos.alquiler.abono, moneda), xResumen + 6, y + 17, anchoResumen - 12);
-  const saldo = Math.max(0, datos.alquiler.montoTotal - datos.alquiler.abono);
-  montoFila(doc, 'Pendiente', formatearMonto(saldo, moneda), xResumen + 6, y + 27, anchoResumen - 12, { bold: true, color: saldo > 0 ? [190, 65, 30] : [22, 130, 90] });
 
-  const xPago = MARGEN;
-  const anchoPago = ANCHO_CONTENIDO - anchoResumen - 6;
-  doc.setFillColor(32, 91, 132);
-  doc.roundedRect(xPago, y, anchoPago, altoResumen, 2.5, 2.5, 'F');
-  // Etiqueta inteligente: el abono de datos.alquiler ya es el POSTERIOR al recibo (lo fija emitirRecibo);
-  // si este pago deja el alquiler saldado, el recuadro lo comunica y el monto se muestra en verde.
-  const saldado = datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal;
-  const etiquetaRecuadro = saldado
-    ? datos.monto >= datos.alquiler.montoTotal ? 'ALQUILER PAGADO' : 'MONTO CANCELADO · ALQUILER SALDADO'
-    : 'MONTO A CANCELAR';
-  texto(doc, etiquetaRecuadro, xPago + 7, y + 10, { size: 7.5, color: [170, 210, 240], bold: true });
-  texto(doc, formatearMonto(datos.monto, moneda), xPago + 7, y + 23, { size: 16, color: saldado ? [134, 239, 172] : [255, 255, 255], bold: true });
-  const equivalente = formatearBsEquivalente(datos.monto, datos.negocio.tasaBs);
-  if (equivalente) {
-    texto(doc, `${equivalente} · ${formatearMonto(datos.negocio.tasaBs, 'Bs')} por 1 $`, xPago + 7, y + 31, { size: 7.5, color: [190, 202, 216] });
-  }
-  y += altoResumen + 9;
+  texto(doc, 'RESUMEN DE CUENTA', xResumen + 6, y + 7.5, { size: 7, color: COLOR_SUAVE, bold: true });
+  doc.setDrawColor(...COLOR_BORDE);
+  doc.setLineWidth(0.2);
+  doc.line(xResumen + 6, y + 9.5, xResumen + anchoResumen - 6, y + 9.5);
+
+  montoFila(doc, 'Total del servicio', formatearMonto(datos.alquiler.montoTotal, moneda), xResumen + 6, y + 15, anchoResumen - 12);
+  montoFila(doc, 'Abono recibido', formatearMonto(datos.alquiler.abono, moneda), xResumen + 6, y + 21.5, anchoResumen - 12);
+
+  doc.line(xResumen + 6, y + 24.5, xResumen + anchoResumen - 6, y + 24.5);
+  const etiquetaSaldo = saldado ? 'Saldo' : 'Saldo pendiente';
+  const colorSaldo: [number, number, number] = saldado ? [22, 130, 90] : [190, 65, 30];
+  montoFila(doc, etiquetaSaldo, formatearMonto(saldoPendiente, moneda), xResumen + 6, y + 30.5, anchoResumen - 12, { bold: true, color: colorSaldo });
+
+  y += altoResumen + 7;
+
+  // Banner elegante de constancia digital oficial
+  doc.setFillColor(...COLOR_FONDO);
+  doc.setDrawColor(...COLOR_BORDE);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(MARGEN, y, ANCHO_CONTENIDO, 16, 2.5, 2.5, 'FD');
+  texto(doc, 'CONSTANCIA DE SERVICIO Y SOPORTE OFICIAL', MARGEN + 5, y + 5, { size: 7, color: COLOR_MARCA, bold: true });
+  texto(doc, 'Este documento certifica la reserva, entrega y condiciones acordadas para los equipos descritos.', MARGEN + 5, y + 9.5, { size: 7.2, color: COLOR_TEXTO });
+  texto(doc, 'Conserve este comprobante digital. Para consultas de entrega o retiro, contáctenos directamente.', MARGEN + 5, y + 13.5, { size: 6.8, color: COLOR_SUAVE });
 
   // Pie de página profesional, organizado y centrado
   const yPie = ALTO_PAGINA - 24;

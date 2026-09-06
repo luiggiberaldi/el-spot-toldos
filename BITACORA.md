@@ -16,6 +16,22 @@
 
 ---
 
+## v1.2.1 — 2026-09-06 — `Mejora`
+
+### Rediseño profesional y refinamiento del recibo PDF (APK y PWA)
+
+- **Fechas de entrega y devolución explícitas**: la tarjeta de detalle del servicio ahora muestra con claridad la fecha y hora de entrega del equipo y la fecha y hora pactada de devolución/retiro.
+- **Eliminación de la zona de tasa de cambio**: se retiró el bloque de conversión a bolívares y tasa de cambio del recibo para mantener un documento limpio, enfocado y directo.
+- **Eliminación de firmas, Instagram y términos legales**: se suprimieron las líneas de firma manual, menciones a redes sociales y cláusulas legales, conservando un banner oficial de constancia de servicio y soporte.
+- **Eliminación de redundancias en el estado de pago**: el estado se comunica de forma armónica sin repetir frases:
+  - Insignia superior (badge): único indicador visual directo (`PAGADO TOTALMENTE` o `SE DEBE: $XX.XX`).
+  - Tarjeta izquierda: comprobante del monto registrado en el recibo (`MONTO REGISTRADO EN ESTE RECIBO` / `MONTO CANCELADO (SALDADO)`).
+  - Tarjeta derecha: resumen contable claro con `Total del servicio`, `Abono recibido` y `Saldo` / `Saldo pendiente`.
+- **Mensaje de WhatsApp sincronizado**: texto limpio con fechas y estatus exacto (`PAGADO TOTALMENTE ✅` o `SE DEBE: $XX.XX ⏳`).
+- **Validación completa**: 58/58 pruebas unitarias Web y suite de pruebas Android aprobadas.
+
+---
+
 ## v1.2.0 — 2026-09-06 — `Nuevo`
 
 ### Suite de mejoras para gestión de alquileres, modal en pantalla completa y Room v7

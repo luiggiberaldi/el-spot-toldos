@@ -4,14 +4,43 @@ import { numeroWhatsAppVenezolano } from './venezuela';
 
 /** Genera el texto del mensaje de WhatsApp con el resumen del recibo. */
 export function textoReciboWhatsApp(datos: DatosRecibo): string {
+  let fechaEntrega = '';
+  if (datos.alquiler.fechaInicio) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.fechaInicio);
+  } else if (datos.alquiler.creadoEn) {
+    fechaEntrega = formatearFechaHora(datos.alquiler.creadoEn);
+  }
+
+  let fechaDevolucion = '';
+  if (datos.alquiler.fechaDevolucion) {
+    fechaDevolucion = formatearFechaHora(datos.alquiler.fechaDevolucion);
+  } else if (datos.alquiler.fechaFin) {
+    fechaDevolucion = formatearFechaHora(datos.alquiler.fechaFin);
+  } else {
+    const baseFecha = datos.alquiler.fechaInicio || datos.alquiler.creadoEn || datos.emitidoEn;
+    if (baseFecha) {
+      const horas = datos.alquiler.modalidad === '12h' ? 12 : 24;
+      const ms = new Date(baseFecha).getTime() + horas * 3600 * 1000;
+      if (!isNaN(ms)) {
+        fechaDevolucion = formatearFechaHora(new Date(ms).toISOString());
+      }
+    }
+  }
+
+  const saldoPendiente = Math.max(0, datos.alquiler.montoTotal - datos.alquiler.abono);
+  const estadoPagado = datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && saldoPendiente === 0);
+  const estadoTexto = estadoPagado ? 'PAGADO TOTALMENTE ✅' : `SE DEBE: ${formatearMonto(saldoPendiente, datos.negocio.moneda)} ⏳`;
+
   const lineas = [
     `🧾 *${datos.negocio.nombre}*`,
     `Recibo N° ${datos.folio}`,
-    `Estado: ${datos.estado === 'pagado' || (datos.alquiler.montoTotal > 0 && datos.alquiler.abono >= datos.alquiler.montoTotal) ? 'PAGADO' : 'POR PAGAR'}`,
+    `Estado: ${estadoTexto}`,
     `Fecha: ${formatearFechaHora(datos.emitidoEn)}`,
     '',
     `Cliente: ${datos.cliente.nombre}`,
     `Concepto: ${datos.concepto}`,
+    ...(fechaEntrega ? [`Fecha de entrega: ${fechaEntrega}`] : []),
+    ...(fechaDevolucion ? [`Fecha de devolución: ${fechaDevolucion}`] : []),
     `Monto: ${formatearMonto(datos.monto, datos.negocio.moneda)}`,
     ...(datos.alquiler.flete && datos.alquiler.flete > 0
       ? [`Flete / Traslado: ${formatearMonto(datos.alquiler.flete, datos.negocio.moneda)}`]

@@ -63,23 +63,23 @@ class ReceiptPdfService(private val context: Context) {
         val rentalFields = buildRentalFields(snapshot)
         val clientHeight = measureCardHeight(paint, clientFields, cardWidth - 28f)
         val rentalHeight = measureCardHeight(paint, rentalFields, cardWidth - 28f)
-        val cardHeight = maxOf(166f, clientHeight, rentalHeight)
+        val cardHeight = maxOf(180f, clientHeight, rentalHeight)
 
         drawCard(canvas, paint, margin, y, cardWidth, cardHeight)
         drawCard(canvas, paint, margin + cardWidth + cardGap, y, cardWidth, cardHeight)
         drawCardSection(canvas, paint, "CLIENTE", clientFields, margin, y, cardWidth)
         drawCardSection(canvas, paint, "DETALLE DEL SERVICIO", rentalFields, margin + cardWidth + cardGap, y, cardWidth)
-        y += cardHeight + 24f
+        y += cardHeight + 22f
 
-        drawText(canvas, paint, "CONCEPTOS DEL ALQUILER", margin, y, 10f, primary, true)
-        y += 13f
-        val headerBottom = y + 28f
+        drawText(canvas, paint, "CONCEPTOS DEL ALQUILER", margin, y, 9.5f, primary, true)
+        y += 12f
+        val headerBottom = y + 26f
         paint.color = darkBlue
         canvas.drawRoundRect(RectF(margin, y, pageWidth - margin, headerBottom), 5f, 5f, paint)
-        drawText(canvas, paint, "DESCRIPCIÓN", margin + 12f, y + 18f, 9f, android.graphics.Color.WHITE, true)
-        drawText(canvas, paint, "CANT.", pageWidth - 190f, y + 18f, 9f, android.graphics.Color.WHITE, true, true)
-        drawText(canvas, paint, "TARIFA", pageWidth - 112f, y + 18f, 9f, android.graphics.Color.WHITE, true, true)
-        drawText(canvas, paint, "SUBTOTAL", pageWidth - margin - 10f, y + 18f, 9f, android.graphics.Color.WHITE, true, true)
+        drawText(canvas, paint, "DESCRIPCIÓN", margin + 12f, y + 17f, 8.5f, android.graphics.Color.WHITE, true)
+        drawText(canvas, paint, "CANT.", pageWidth - 190f, y + 17f, 8.5f, android.graphics.Color.WHITE, true, true)
+        drawText(canvas, paint, "TARIFA", pageWidth - 112f, y + 17f, 8.5f, android.graphics.Color.WHITE, true, true)
+        drawText(canvas, paint, "SUBTOTAL", pageWidth - margin - 10f, y + 17f, 8.5f, android.graphics.Color.WHITE, true, true)
         y = headerBottom
 
         snapshot.items.forEachIndexed { index, item ->
@@ -89,11 +89,11 @@ class ReceiptPdfService(private val context: Context) {
                 paint.color = pale
                 canvas.drawRect(margin, y, pageWidth - margin, y + rowHeight, paint)
             }
-            drawText(canvas, paint, itemLabel.take(45), margin + 12f, y + 20f, 10f, text, false)
-            drawText(canvas, paint, item.quantity.toString(), pageWidth - 190f, y + 20f, 10f, text, false, true)
+            drawText(canvas, paint, itemLabel.take(45), margin + 12f, y + 20f, 9.5f, text, false)
+            drawText(canvas, paint, item.quantity.toString(), pageWidth - 190f, y + 20f, 9.5f, text, false, true)
             val tariff = item.tariffCents
-            drawText(canvas, paint, centsToDollarText(tariff), pageWidth - 112f, y + 20f, 10f, text, false, true)
-            drawText(canvas, paint, centsToDollarText(tariff * item.quantity), pageWidth - margin - 10f, y + 20f, 10f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(tariff), pageWidth - 112f, y + 20f, 9.5f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(tariff * item.quantity), pageWidth - margin - 10f, y + 20f, 9.5f, text, false, true)
             y += rowHeight
         }
         if (snapshot.fleteCents > 0L) {
@@ -102,54 +102,100 @@ class ReceiptPdfService(private val context: Context) {
                 paint.color = pale
                 canvas.drawRect(margin, y, pageWidth - margin, y + rowHeight, paint)
             }
-            drawText(canvas, paint, "Flete / Transporte del servicio", margin + 12f, y + 20f, 10f, text, false)
-            drawText(canvas, paint, "1", pageWidth - 190f, y + 20f, 10f, text, false, true)
-            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - 112f, y + 20f, 10f, text, false, true)
-            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - margin - 10f, y + 20f, 10f, text, false, true)
+            drawText(canvas, paint, "Flete / Transporte del servicio", margin + 12f, y + 20f, 9.5f, text, false)
+            drawText(canvas, paint, "1", pageWidth - 190f, y + 20f, 9.5f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - 112f, y + 20f, 9.5f, text, false, true)
+            drawText(canvas, paint, centsToDollarText(snapshot.fleteCents), pageWidth - margin - 10f, y + 20f, 9.5f, text, false, true)
             y += rowHeight
         }
         paint.color = border
         paint.strokeWidth = 1f
         canvas.drawLine(margin, y, pageWidth - margin, y, paint)
-        if (snapshot.mode.hours == 12) {
-            drawText(canvas, paint, "Modalidad: 12 horas.", margin, y + 17f, 8.5f, muted)
-            y += 31f
-        } else {
-            y += 16f
-        }
+        y += 18f
 
         val summaryTop = y
-        val summaryHeight = 126f
-        val summaryWidth = 235f
-        val paymentWidth = contentWidth - summaryWidth - 12f
-        // Etiqueta inteligente: el recuadro refleja si este pago deja el alquiler saldado.
-        // snapshot.rentalDepositCents ya trae el abono POSTERIOR al recibo (lo fija el repositorio al emitir).
-        val paidInFull = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
-        val boxLabel = when {
-            paidInFull && snapshot.amountCents >= snapshot.rentalTotalCents -> "ALQUILER PAGADO"
-            paidInFull -> "MONTO CANCELADO · ALQUILER SALDADO"
-            else -> "MONTO A CANCELAR"
-        }
-        val amountColor = if (paidInFull) android.graphics.Color.rgb(134, 239, 172) else android.graphics.Color.WHITE
-        paint.color = darkBlue
-        canvas.drawRoundRect(RectF(margin, summaryTop, margin + paymentWidth, summaryTop + summaryHeight), 7f, 7f, paint)
-        drawText(canvas, paint, boxLabel, margin + 15f, summaryTop + 27f, 9f, lightBlue, true)
-        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 15f, summaryTop + 65f, 20f, amountColor, true)
-        val bs = centsToBolivarText(snapshot.amountCents, snapshot.exchangeRate)
-        if (bs.isNotBlank()) {
-            drawText(canvas, paint, "$bs · ${exchangeRateText(snapshot.exchangeRate)}", margin + 15f, summaryTop + 95f, 9f, lightGray)
-        }
-        paint.color = pale
-        canvas.drawRoundRect(RectF(pageWidth - margin - summaryWidth, summaryTop, pageWidth - margin, summaryTop + summaryHeight), 7f, 7f, paint)
-        val rightX = pageWidth - margin - 16f
-        drawAmountRow(canvas, paint, "Total del alquiler", centsToDollarText(snapshot.rentalTotalCents), rightX, summaryTop + 30f, text, false)
-        drawAmountRow(canvas, paint, "Abono recibido", centsToDollarText(snapshot.rentalDepositCents), rightX, summaryTop + 58f, muted, false)
+        val summaryHeight = 112f
+        val summaryWidth = 230f
+        val paymentWidth = contentWidth - summaryWidth - 14f
         val balance = (snapshot.rentalTotalCents - snapshot.rentalDepositCents).coerceAtLeast(0L)
-        drawAmountRow(canvas, paint, "Pendiente", centsToDollarText(balance), rightX, summaryTop + 93f, if (balance > 0) android.graphics.Color.rgb(190, 65, 30) else android.graphics.Color.rgb(22, 130, 90), true)
-        y = summaryTop + summaryHeight + 25f
+        val paidInFull = snapshot.rentalTotalCents > 0L && balance == 0L
+
+        // Tarjeta Izquierda: Comprobante del monto de este recibo
+        val cardBg = if (paidInFull) android.graphics.Color.rgb(240, 253, 244) else pale
+        val cardBorder = if (paidInFull) android.graphics.Color.rgb(187, 247, 208) else border
+        val accentBarColor = if (paidInFull) android.graphics.Color.rgb(22, 130, 90) else primary
+        val amountColor = if (paidInFull) android.graphics.Color.rgb(20, 83, 45) else text
+        val boxLabel = if (paidInFull) "MONTO CANCELADO (SALDADO)" else "MONTO REGISTRADO EN ESTE RECIBO"
+
+        paint.color = cardBg
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(RectF(margin, summaryTop, margin + paymentWidth, summaryTop + summaryHeight), 8f, 8f, paint)
+        paint.color = cardBorder
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        canvas.drawRoundRect(RectF(margin, summaryTop, margin + paymentWidth, summaryTop + summaryHeight), 8f, 8f, paint)
+        paint.style = Paint.Style.FILL
+
+        paint.color = accentBarColor
+        canvas.drawRoundRect(RectF(margin, summaryTop + 8f, margin + 4f, summaryTop + summaryHeight - 8f), 2f, 2f, paint)
+
+        drawText(canvas, paint, boxLabel, margin + 18f, summaryTop + 27f, 8f, accentBarColor, bold = true)
+        drawText(canvas, paint, centsToDollarText(snapshot.amountCents), margin + 18f, summaryTop + 65f, 24f, amountColor, bold = true)
+
+        val statusTag = if (paidInFull) {
+            "Comprobante de pago · Equipo solvente"
+        } else {
+            "Abono registrado a cuenta"
+        }
+        drawText(canvas, paint, statusTag, margin + 18f, summaryTop + 93f, 8f, muted, bold = false)
+
+        // Tarjeta Derecha: Resumen de cuenta
+        val rightX = pageWidth - margin - summaryWidth
+        paint.color = pale
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(RectF(rightX, summaryTop, pageWidth - margin, summaryTop + summaryHeight), 8f, 8f, paint)
+        paint.color = border
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        canvas.drawRoundRect(RectF(rightX, summaryTop, pageWidth - margin, summaryTop + summaryHeight), 8f, 8f, paint)
+        paint.style = Paint.Style.FILL
+
+        drawText(canvas, paint, "RESUMEN DE CUENTA", rightX + 16f, summaryTop + 24f, 8f, muted, bold = true)
+        paint.color = border
+        paint.strokeWidth = 0.75f
+        canvas.drawLine(rightX + 16f, summaryTop + 31f, pageWidth - margin - 16f, summaryTop + 31f, paint)
+
+        val rightMargin = pageWidth - margin - 16f
+        drawAmountRow(canvas, paint, "Total del servicio", centsToDollarText(snapshot.rentalTotalCents), rightMargin, summaryTop + 48f, text, false)
+        drawAmountRow(canvas, paint, "Abono recibido", centsToDollarText(snapshot.rentalDepositCents), rightMargin, summaryTop + 68f, muted, false)
+
+        paint.color = border
+        paint.strokeWidth = 0.75f
+        canvas.drawLine(rightX + 16f, summaryTop + 78f, rightMargin, summaryTop + 78f, paint)
+
+        val balanceColor = if (balance > 0L) android.graphics.Color.rgb(185, 28, 28) else android.graphics.Color.rgb(22, 130, 90)
+        drawAmountRow(canvas, paint, if (balance > 0L) "Saldo pendiente" else "Saldo", centsToDollarText(balance), rightMargin, summaryTop + 96f, balanceColor, true)
+
+        y = summaryTop + summaryHeight + 20f
+
+        // Tarjeta elegante de constancia digital oficial y servicio
+        val noteHeight = 52f
+        val noteRect = RectF(margin, y, pageWidth - margin, y + noteHeight)
+        paint.color = pale
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(noteRect, 6f, 6f, paint)
+        paint.color = border
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.8f
+        canvas.drawRoundRect(noteRect, 6f, 6f, paint)
+        paint.style = Paint.Style.FILL
+
+        drawText(canvas, paint, "CONSTANCIA DE SERVICIO Y SOPORTE OFICIAL", margin + 14f, y + 19f, 7.5f, primary, bold = true)
+        drawText(canvas, paint, "Este documento certifica la reserva, entrega y condiciones acordadas para los equipos descritos.", margin + 14f, y + 33f, 8f, text)
+        drawText(canvas, paint, "Conserve este comprobante digital. Para consultas de entrega o retiro, contáctenos directamente.", margin + 14f, y + 44f, 7.5f, muted)
 
         // Pie de página profesional, organizado y centrado
-        val footerLineY = 760f
+        val footerLineY = 765f
         paint.color = border
         paint.strokeWidth = 1f
         canvas.drawLine(margin, footerLineY, pageWidth - margin, footerLineY, paint)
@@ -160,9 +206,9 @@ class ReceiptPdfService(private val context: Context) {
             if (snapshot.businessPhone.isNotBlank()) add("Tel: ${snapshot.businessPhone}")
         }
         val headerText = if (bizMeta.isEmpty()) bizName else "$bizName · ${bizMeta.joinToString(" · ")}"
-        drawText(canvas, paint, headerText, pageWidth / 2f, 782f, 9.5f, text, bold = true, center = true)
-        drawText(canvas, paint, "Comprobante digital de servicio · Generado por el sistema", pageWidth / 2f, 799f, 8f, muted, center = true)
-        drawText(canvas, paint, "¡Gracias por su preferencia y confianza!", pageWidth / 2f, 815f, 9f, primary, bold = true, center = true)
+        drawText(canvas, paint, headerText, pageWidth / 2f, 785f, 9.5f, text, bold = true, center = true)
+        drawText(canvas, paint, "Comprobante digital de servicio · Generado por el sistema", pageWidth / 2f, 801f, 8f, muted, center = true)
+        drawText(canvas, paint, "¡Gracias por su preferencia y confianza!", pageWidth / 2f, 817f, 9f, primary, bold = true, center = true)
 
         document.finishPage(page)
         FileOutputStream(file).use { document.writeTo(it) }
@@ -225,20 +271,52 @@ class ReceiptPdfService(private val context: Context) {
 
     private fun drawHeader(canvas: Canvas, paint: Paint, snapshot: ReceiptSnapshot): Float {
         paint.color = headerDark
-        canvas.drawRect(0f, 0f, pageWidth, 112f, paint)
+        canvas.drawRect(0f, 0f, pageWidth, 114f, paint)
         val logo = loadPdfLogo()
         if (logo != null) {
             val logoWidth = 92f
             val logoHeight = 98f
-            canvas.drawBitmap(logo, null, RectF((pageWidth - logoWidth) / 2f, 7f, (pageWidth + logoWidth) / 2f, 7f + logoHeight), paint)
+            canvas.drawBitmap(logo, null, RectF((pageWidth - logoWidth) / 2f, 8f, (pageWidth + logoWidth) / 2f, 8f + logoHeight), paint)
         }
-        drawText(canvas, paint, "RECIBO N° ${snapshot.folio}", pageWidth - margin, 31f, 15f, text, true, true)
-        drawText(canvas, paint, "Emitido el ${formatDateTime(snapshot.emittedAt)}", pageWidth - margin, 53f, 9.5f, muted, false, true)
-        // Sello del encabezado coherente con el estado del alquiler tras este recibo.
-        val headerStatus = if (snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents) ReceiptPaymentStatus.PAID else snapshot.paymentStatus
-        val stateColor = if (headerStatus == ReceiptPaymentStatus.PAID) android.graphics.Color.rgb(22, 130, 90) else android.graphics.Color.rgb(180, 115, 10)
-        drawText(canvas, paint, headerStatus.label.uppercase(), pageWidth - margin, 77f, 11f, stateColor, true, true)
-        return 135f
+        drawText(canvas, paint, "RECIBO N° ${snapshot.folio}", pageWidth - margin, 32f, 15f, text, true, true)
+        drawText(canvas, paint, "Emitido el ${formatDateTime(snapshot.emittedAt)}", pageWidth - margin, 52f, 9f, muted, false, true)
+
+        val balance = (snapshot.rentalTotalCents - snapshot.rentalDepositCents).coerceAtLeast(0L)
+        val paidInFull = snapshot.rentalTotalCents > 0L && balance == 0L
+        val badgeText = if (paidInFull) "PAGADO TOTALMENTE" else "SE DEBE: ${centsToDollarText(balance)}"
+        val badgeBg = if (paidInFull) android.graphics.Color.rgb(236, 253, 245) else android.graphics.Color.rgb(254, 242, 242)
+        val badgeBorder = if (paidInFull) android.graphics.Color.rgb(167, 243, 208) else android.graphics.Color.rgb(254, 202, 202)
+        val badgeTextColor = if (paidInFull) android.graphics.Color.rgb(4, 120, 87) else android.graphics.Color.rgb(185, 28, 28)
+
+        paint.textSize = 8.5f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        val textWidth = paint.measureText(badgeText)
+        val badgeWidth = textWidth + 24f
+        val badgeHeight = 22f
+        val badgeRight = pageWidth - margin
+        val badgeLeft = badgeRight - badgeWidth
+        val badgeTop = 68f
+        val badgeBottom = badgeTop + badgeHeight
+        val badgeRect = RectF(badgeLeft, badgeTop, badgeRight, badgeBottom)
+
+        paint.style = Paint.Style.FILL
+        paint.color = badgeBg
+        canvas.drawRoundRect(badgeRect, 11f, 11f, paint)
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        paint.color = badgeBorder
+        canvas.drawRoundRect(badgeRect, 11f, 11f, paint)
+        paint.style = Paint.Style.FILL
+
+        val dotRadius = 3f
+        val dotX = badgeLeft + 9f
+        val dotY = badgeTop + (badgeHeight / 2f)
+        paint.color = badgeTextColor
+        canvas.drawCircle(dotX, dotY, dotRadius, paint)
+        drawText(canvas, paint, badgeText, badgeLeft + 16f, badgeTop + 14.5f, 8.5f, badgeTextColor, bold = true)
+
+        return 134f
     }
 
     private fun buildClientFields(snapshot: ReceiptSnapshot): List<Pair<String, String>> = buildList {
@@ -251,8 +329,18 @@ class ReceiptPdfService(private val context: Context) {
     private fun buildRentalFields(snapshot: ReceiptSnapshot): List<Pair<String, String>> = buildList {
         add("FOLIO DE ALQUILER" to snapshot.rentalFolio)
         add("MODALIDAD" to snapshot.mode.label)
-        if (snapshot.returnAt > 0L) {
-            add("ENTREGA DEL TOLDO" to formatDateTime(snapshot.returnAt))
+        if (snapshot.startAt > 0L) {
+            add("FECHA DE ENTREGA" to formatDateTime(snapshot.startAt))
+        }
+        val calculatedReturn = if (snapshot.returnAt > 0L) {
+            snapshot.returnAt
+        } else if (snapshot.startAt > 0L) {
+            snapshot.startAt + snapshot.mode.hours * 3600000L
+        } else {
+            0L
+        }
+        if (calculatedReturn > 0L) {
+            add("FECHA DE DEVOLUCIÓN" to formatDateTime(calculatedReturn))
         }
         val eventAddressValue = when {
             snapshot.eventAddress.isNotBlank() -> snapshot.eventAddress
@@ -366,14 +454,23 @@ class ReceiptPdfService(private val context: Context) {
         return buildString {
             appendLine(capitalizeWords(snapshot.businessName.ifBlank { "EL SPOT" }))
             appendLine("Recibo N° ${snapshot.folio}")
-            val settled = snapshot.rentalTotalCents > 0L && snapshot.rentalDepositCents >= snapshot.rentalTotalCents
-            val estadoTexto = (if (settled) ReceiptPaymentStatus.PAID else snapshot.paymentStatus).label.uppercase()
+            val balance = (snapshot.rentalTotalCents - snapshot.rentalDepositCents).coerceAtLeast(0L)
+            val settled = snapshot.rentalTotalCents > 0L && balance == 0L
+            val estadoTexto = if (settled) "PAGADO TOTALMENTE" else "SE DEBE: ${centsToDollarText(balance)}"
             appendLine("Estado: $estadoTexto")
             appendLine("Hola ${capitalizeWords(snapshot.clientName)},")
             appendLine("Adjuntamos el recibo correspondiente a tu alquiler de toldo.")
             appendLine("Modalidad: ${snapshot.mode.label}")
+            if (snapshot.startAt > 0L) appendLine("Fecha de entrega: ${formatDateTime(snapshot.startAt)}")
+            val calculatedReturn = if (snapshot.returnAt > 0L) {
+                snapshot.returnAt
+            } else if (snapshot.startAt > 0L) {
+                snapshot.startAt + snapshot.mode.hours * 3600000L
+            } else {
+                0L
+            }
+            if (calculatedReturn > 0L) appendLine("Fecha de devolución: ${formatDateTime(calculatedReturn)}")
             if (snapshot.fleteCents > 0L) appendLine("Flete / Transporte: ${centsToDollarText(snapshot.fleteCents)}")
-            if (snapshot.returnAt > 0L) appendLine("Entrega del toldo: ${formatDateTime(snapshot.returnAt)}")
             appendLine("Monto: ${centsToDollarText(snapshot.amountCents)}")
             if (bs.isNotBlank()) appendLine("Equivalente: $bs")
             if (snapshot.eventAddress.isNotBlank()) appendLine("Dirección: ${snapshot.eventAddress}")

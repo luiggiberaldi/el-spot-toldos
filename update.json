@@ -1,8 +1,8 @@
 {
-  "versionCode": 13,
-  "versionName": "1.2.0",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.0/el-spot-toldos-1.2.0.apk",
-  "sha256": "661fbd7aa345491f2366a0078242003704cfb44d020a1027707c1ac9e3685e53",
-  "notes": "Modal de alquiler en pantalla completa, alta rápida de clientes desde el formulario, costo opcional de flete/transporte, recordatorios configurables de devolución y comprobante fotográfico de entrega.",
+  "versionCode": 14,
+  "versionName": "1.2.1",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.1/el-spot-toldos-1.2.1.apk",
+  "sha256": "",
+  "notes": "Rediseño profesional del recibo PDF: fechas explícitas de entrega y devolución, remoción de tasa de cambio y redundancias, e indicación limpia y contable del estado de pago.",
   "mandatory": false
 }
