@@ -119,4 +119,65 @@ class ReceiptSnapshotTest {
         assertTrue((snapshot?.startAt ?: 0L) > 0L)
         assertEquals(1, snapshot?.items?.size)
     }
+
+    @Test
+    fun receiptWithAbonoYaRecibidoResolvesToPaidEvenIfSerializedAsDue() {
+        val rawJson = JSONObject()
+            .put("id", "rec-002")
+            .put("folio", "REC-0002")
+            .put("rentalFolio", "ALQ-0001")
+            .put("rentalId", "rental-1")
+            .put("concept", "Abono ya recibido del alquiler")
+            .put("amountCents", 1000L)
+            .put("paymentStatus", "DUE")
+            .put("rentalTotalCents", 1000L)
+            .put("rentalDepositCents", 1000L)
+            .toString()
+
+        val snapshot = ReceiptSnapshot.fromJson(rawJson)
+        assertNotNull(snapshot)
+        assertEquals(ReceiptPaymentStatus.PAID, snapshot?.paymentStatus)
+        assertTrue(snapshot?.isActuallyPaid == true)
+        assertEquals(ReceiptPaymentStatus.PAID, snapshot?.effectivePaymentStatus)
+    }
+
+    @Test
+    fun settledRentalComprobanteResolvesToPaid() {
+        val rawJson = JSONObject()
+            .put("id", "rec-003")
+            .put("folio", "REC-0003")
+            .put("rentalFolio", "ALQ-0002")
+            .put("rentalId", "rental-2")
+            .put("concept", "Comprobante de pago · Alquiler saldado")
+            .put("amountCents", 5000L)
+            .put("paymentStatus", "DUE")
+            .put("rentalTotalCents", 5000L)
+            .put("rentalDepositCents", 5000L)
+            .toString()
+
+        val snapshot = ReceiptSnapshot.fromJson(rawJson)
+        assertNotNull(snapshot)
+        assertEquals(ReceiptPaymentStatus.PAID, snapshot?.paymentStatus)
+        assertTrue(snapshot?.isActuallyPaid == true)
+    }
+
+    @Test
+    fun trulyUnpaidInvoiceWithRemainingBalanceResolvesToDue() {
+        val rawJson = JSONObject()
+            .put("id", "rec-004")
+            .put("folio", "REC-0004")
+            .put("rentalFolio", "ALQ-0003")
+            .put("rentalId", "rental-3")
+            .put("concept", "Cuenta de cobro pendiente del alquiler")
+            .put("amountCents", 3000L)
+            .put("paymentStatus", "DUE")
+            .put("rentalTotalCents", 5000L)
+            .put("rentalDepositCents", 2000L)
+            .toString()
+
+        val snapshot = ReceiptSnapshot.fromJson(rawJson)
+        assertNotNull(snapshot)
+        assertEquals(ReceiptPaymentStatus.DUE, snapshot?.paymentStatus)
+        assertTrue(snapshot?.isActuallyPaid == false)
+    }
 }

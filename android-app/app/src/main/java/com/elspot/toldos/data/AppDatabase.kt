@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReciboEntity::class,
         BitacoraEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,6 +25,27 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bitacora(): BitacoraDao
 
     companion object {
+        /** v1.2.2: Corrección automática de recibos históricos marcados erróneamente como DUE. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    UPDATE recibos
+                    SET estadoPago = 'PAID'
+                    WHERE estadoPago != 'PAID'
+                      AND (
+                        LOWER(concepto) LIKE '%ya recibido%'
+                        OR LOWER(concepto) LIKE '%abono recibido%'
+                        OR LOWER(concepto) LIKE '%saldado%'
+                        OR LOWER(concepto) LIKE '%cancelación%'
+                        OR LOWER(concepto) LIKE '%cancelacion%'
+                        OR LOWER(concepto) LIKE '%comprobante de pago%'
+                      )
+                    """.trimIndent()
+                )
+            }
+        }
+
         /** v1.2.0: Costo de flete/transporte y fotografía de comprobante de entrega en alquileres. */
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {

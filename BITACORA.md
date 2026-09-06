@@ -16,6 +16,33 @@
 
 ---
 
+## v1.3.0 — 2026-09-06 — `Mejora`
+
+### Rediseño integral del modal de toldos, blindaje de inventario y resolución determinista de recibos
+
+- **Rediseño táctico del modal de toldos (APK)**:
+  - Encabezado con ícono semántico contextual (`AddBusiness` para nuevo toldo, `Edit` para edición) y botón de cierre directo `(X)`.
+  - Badge de estado con coloración semántica integrado bajo el título en modo edición.
+  - Asistente de medidas con chips rápidos: `[3x3m]`, `[4x4m]`, `[6x3m]`, `[6x6m]` con selección activa resaltada.
+  - Asistente de precios: botón táctico `[Sugerir 50% 12h: $XX.XX]` para calcular automáticamente la mitad de la tarifa de 24 horas con un solo toque.
+  - Conversión en vivo a Bolívares (Bs.): cálculo y visualización en tiempo real del contravalor en Bs. para tarifas de 24h y 12h usando la tasa de cambio del sistema.
+  - Stepper de unidades táctico con botones `[-]` y `[+]` centrando el valor numérico.
+- **Blindaje de inventario y alquileres activos (APK)**:
+  - Alerta explicativa en tarjeta amigable si el toldo tiene unidades actualmente asignadas a alquileres activos (`occupiedUnits > 0`).
+  - Bloqueo y protección de estado: fija el estado a *Alquilado* cuando hay alquileres activos, e impide seleccionar *Alquilado* en toldos sin alquiler activo.
+  - Límite mínimo de unidades protegido: impide reducir el total de unidades a una cantidad menor que las unidades activas en alquiler.
+- **Corrección y verificación del estado de pago en recibos (APK y PWA)**:
+  - Desacoplamiento del registro de abonos y el estado de cancelación (`isPaid`).
+  - Lógica fáctica determinista `ReceiptPaymentStatus.resolve(...)`: clasifica como `PENDING` ("Por pagar") siempre que exista saldo pendiente real (`saldo > 0`), sin falsos positivos de "Totalmente cancelado".
+  - Diálogos de recibos modernizados (`ReceiptFormDialog` y `ReceiptDetailDialog`) con indicadores visuales de saldo, abono y estado inequívoco.
+  - Migración de base de datos Room a versión 8 (`MIGRATION_7_8`) con saneamiento automático retrocompatible en `onOpen`.
+- **Validación completa**:
+  - Pruebas Android: `testDebugUnitTest` 100% aprobadas.
+  - Pruebas Web: `npm test` 58/58 tests aprobados.
+  - Compilación de producción Vite PWA y APK release empaquetada.
+
+---
+
 ## v1.2.1 — 2026-09-06 — `Mejora`
 
 ### Rediseño profesional y refinamiento del recibo PDF (APK y PWA)

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Warning
@@ -1441,50 +1443,197 @@ private fun RentalDetailDialog(rental: AlquilerEntity, state: AppUiState, viewMo
 private fun ReceiptFormDialog(rental: AlquilerEntity, state: AppUiState, viewModel: AppViewModel, onDismiss: () -> Unit) {
     val balance = (rental.montoTotalCents - rental.abonoCents).coerceAtLeast(0L)
     val settled = balance <= 0L
-    var amount by remember(rental) { mutableStateOf(((if (balance > 0L) balance else rental.abonoCents) / 100.0).toString()) }
-    var concept by remember(rental) { mutableStateOf(if (balance > 0L) "Saldo pendiente del alquiler" else "Abono ya recibido del alquiler") }
-    var paymentStatus by remember(rental) { mutableStateOf(if (balance > 0L) ReceiptPaymentStatus.PAID else ReceiptPaymentStatus.DUE) }
-    val amountCents = if (settled) rental.abonoCents else (parseDollarCents(amount) ?: 0L)
+
+    var selectedOption by remember(rental) {
+        mutableStateOf(if (settled) "SETTLED" else "PAY_BALANCE")
+    }
+    var partialAmountText by remember(rental) {
+        mutableStateOf(if (balance > 0L) (balance / 100.0).toString() else "")
+    }
+    var customConcept by remember(rental, selectedOption) {
+        mutableStateOf(
+            when {
+                settled -> "Comprobante de pago · Alquiler saldado"
+                selectedOption == "PAY_BALANCE" -> "Cancelación de saldo pendiente del alquiler"
+                selectedOption == "EXISTING_DEPOSIT" -> "Abono ya recibido del alquiler"
+                selectedOption == "PARTIAL_PAYMENT" -> "Abono al alquiler"
+                selectedOption == "INVOICE_DUE" -> "Cuenta de cobro pendiente del alquiler"
+                else -> "Pago del alquiler"
+            }
+        )
+    }
+
+    val (amountCents, paymentStatus, registerDeposit) = remember(selectedOption, partialAmountText, rental) {
+        when {
+            settled -> Triple(rental.abonoCents.coerceAtLeast(rental.montoTotalCents), ReceiptPaymentStatus.PAID, false)
+            selectedOption == "PAY_BALANCE" -> Triple(balance, ReceiptPaymentStatus.PAID, true)
+            selectedOption == "EXISTING_DEPOSIT" -> Triple(rental.abonoCents, ReceiptPaymentStatus.PAID, false)
+            selectedOption == "PARTIAL_PAYMENT" -> {
+                val parsed = parseDollarCents(partialAmountText) ?: 0L
+                Triple(parsed, ReceiptPaymentStatus.PAID, true)
+            }
+            selectedOption == "INVOICE_DUE" -> Triple(balance, ReceiptPaymentStatus.DUE, false)
+            else -> Triple(balance, ReceiptPaymentStatus.PAID, true)
+        }
+    }
+
     var createdReceipt by remember { mutableStateOf<com.elspot.toldos.data.ReciboEntity?>(null) }
-    LaunchedEffect(Unit) { viewModel.events.collect { event -> if (event is AppEvent.ReceiptCreated && event.receipt.alquilerId == rental.id) createdReceipt = event.receipt } }
-    createdReceipt?.let { receipt -> AlertDialog(onDismissRequest = onDismiss, title = { Text("Recibo ${receipt.folio} emitido") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Icon(Icons.Default.TaskAlt, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)); Text("El recibo fue guardado y está listo para compartir por WhatsApp."); Text("Puedes enviar el PDF con el mensaje profesional o compartir solo el resumen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, dismissButton = { Row { TextButton(onClick = { viewModel.shareReceiptWhatsApp(receipt) }) { Icon(Icons.Default.Chat, null); Text("WhatsApp") }; TextButton(onClick = { viewModel.shareReceipt(receipt, true) }) { Text("Mensaje") }; TextButton(onClick = { viewModel.shareReceipt(receipt) }) { Text("PDF") } } }, confirmButton = { Button(onClick = onDismiss) { Text("Cerrar") } }); return }
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            if (event is AppEvent.ReceiptCreated && event.receipt.alquilerId == rental.id) {
+                createdReceipt = event.receipt
+            }
+        }
+    }
+
+    createdReceipt?.let { receipt ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Recibo ${receipt.folio} emitido") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.TaskAlt, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp))
+                    Text("El recibo fue guardado y está listo para compartir por WhatsApp.")
+                    Text("Puedes enviar el PDF con el mensaje profesional o compartir solo el resumen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { viewModel.shareReceiptWhatsApp(receipt) }) { Icon(Icons.Default.Chat, null); Text("WhatsApp") }
+                    TextButton(onClick = { viewModel.shareReceipt(receipt, true) }) { Text("Mensaje") }
+                    TextButton(onClick = { viewModel.shareReceipt(receipt) }) { Text("PDF") }
+                }
+            },
+            confirmButton = { Button(onClick = onDismiss) { Text("Cerrar") } }
+        )
+        return
+    }
+
+    val isValid = amountCents > 0L && (!registerDeposit || amountCents <= balance)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Emitir recibo · ${rental.folio}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Pendiente actual: ${formatDual(balance, state.config)}", color = MaterialTheme.colorScheme.secondary)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (settled) {
-                    // Alquiler saldado: el recibo documenta el abono recibido; el monto no se edita.
-                    Text(
-                        "Monto del comprobante: ${formatDual(rental.abonoCents, state.config)} (abono ya recibido)",
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            Column {
+                                Text("ALQUILER SALDADO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
+                                Text("Totalmente pagado (${formatDual(rental.montoTotalCents, state.config)}). Este recibo certifica el pago solvente.", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 } else {
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it.replace(',', '.') },
-                        label = { Text("Monto a cancelar ($)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
+                    Text(
+                        "Pendiente actual: ${formatDual(balance, state.config)}",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    val optionList = buildList {
+                        add("PAY_BALANCE" to "Cobrar saldo pendiente (${centsToDollarText(balance)})")
+                        if (rental.abonoCents > 0L) {
+                            add("EXISTING_DEPOSIT" to "Documentar abono ya recibido (${centsToDollarText(rental.abonoCents)})")
+                        }
+                        add("PARTIAL_PAYMENT" to "Otro monto a cobrar ($)")
+                        add("INVOICE_DUE" to "Cuenta de cobro pendiente (Por pagar)")
+                    }
+
+                    ChoiceField(
+                        "Tipo de recibo",
+                        selectedOption,
+                        optionList,
+                        { selectedOption = it }
+                    )
+
+                    if (selectedOption == "PARTIAL_PAYMENT") {
+                        OutlinedTextField(
+                            value = partialAmountText,
+                            onValueChange = { partialAmountText = it.replace(',', '.') },
+                            label = { Text("Monto cobrado ($)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = customConcept,
+                    onValueChange = { customConcept = it },
+                    label = { Text("Concepto") },
+                    minLines = 2,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (paymentStatus == ReceiptPaymentStatus.PAID) MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            if (paymentStatus == ReceiptPaymentStatus.PAID) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = if (paymentStatus == ReceiptPaymentStatus.PAID) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            if (paymentStatus == ReceiptPaymentStatus.PAID) {
+                                if (registerDeposit) "Estado: PAGADO (se registrará el abono)" else "Estado: PAGADO (comprobante de dinero ya recibido)"
+                            } else {
+                                "Estado: POR PAGAR (cuenta de cobro, no ingresa dinero)"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (paymentStatus == ReceiptPaymentStatus.PAID) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
+
+                if (amountCents > 0L) {
+                    Text(
+                        "Monto del recibo: ${formatDual(amountCents, state.config)}",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                OutlinedTextField(concept, { concept = it }, label = { Text("Concepto") }, minLines = 2)
-                // Cuando el alquiler ya está saldado, emitir un comprobante no debe leerse como "Por pagar".
-                ChoiceField(
-                    "Estado del recibo", paymentStatus,
-                    listOf(
-                        ReceiptPaymentStatus.PAID to "Pagado · registrar como abono",
-                        ReceiptPaymentStatus.DUE to if (balance <= 0L) "Comprobante · alquiler ya saldado" else "Por pagar · no registrar abono"
-                    ),
-                    { paymentStatus = it }
-                )
-                if (amountCents > 0) Text("Se emitirá: ${formatDual(amountCents, state.config)}", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
-        confirmButton = { Button(onClick = { viewModel.emitReceipt(rental.id, amountCents, concept, paymentStatus) }, enabled = amountCents > 0L && (paymentStatus == ReceiptPaymentStatus.DUE || amountCents <= balance)) { Text("Emitir recibo") } }
+        confirmButton = {
+            Button(
+                onClick = {
+                    viewModel.emitReceipt(
+                        rentalId = rental.id,
+                        amountCents = amountCents,
+                        concept = customConcept,
+                        paymentStatus = paymentStatus,
+                        registerDeposit = registerDeposit
+                    )
+                },
+                enabled = isValid
+            ) {
+                Text(if (settled) "Emitir comprobante" else "Emitir recibo")
+            }
+        }
     )
 }
 

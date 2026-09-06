@@ -75,6 +75,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         scheduler.createChannels()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { repository.fixHistoricalPaidReceipts() }
+        }
         viewModelScope.launch {
             repository.state.collect { snapshot ->
                 if (snapshot.config.notificationsEnabled) {
@@ -186,9 +189,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun emitReceipt(rentalId: String, amountCents: Long, concept: String, paymentStatus: ReceiptPaymentStatus) {
+    fun emitReceipt(
+        rentalId: String,
+        amountCents: Long,
+        concept: String,
+        paymentStatus: ReceiptPaymentStatus,
+        registerDeposit: Boolean = paymentStatus == ReceiptPaymentStatus.PAID
+    ) {
         runAction(null) {
-            val result = repository.emitReceipt(rentalId, amountCents, concept, paymentStatus)
+            val result = repository.emitReceipt(rentalId, amountCents, concept, paymentStatus, registerDeposit)
             result.getOrThrow().also { receipt ->
                 _events.emit(AppEvent.ReceiptCreated(receipt))
             }

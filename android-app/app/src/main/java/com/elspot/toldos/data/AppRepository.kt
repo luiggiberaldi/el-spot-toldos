@@ -158,9 +158,16 @@ class AppRepository(
 
     suspend fun receiptSnapshot(entity: ReciboEntity): ReceiptSnapshot? {
         val raw = entity.snapshotJson
-        return (ReceiptSnapshot.fromJson(raw)
+        val base = (ReceiptSnapshot.fromJson(raw)
             ?: runCatching { ReceiptSnapshot.fromLegacyJson(org.json.JSONObject(raw)) }.getOrNull())
-            ?.copy(paymentStatus = ReceiptPaymentStatus.from(entity.estadoPago))
+            ?: return null
+        val resolved = ReceiptPaymentStatus.resolve(
+            status = entity.estadoPago,
+            concept = entity.concepto.ifBlank { base.concept },
+            rentalTotalCents = base.rentalTotalCents,
+            rentalDepositCents = base.rentalDepositCents
+        )
+        return base.copy(paymentStatus = resolved)
     }
 
     suspend fun updateRentalStatus(id: String, status: RentalStatus, reason: String = ""): AlquilerEntity? {
@@ -207,7 +214,8 @@ class AppRepository(
         rentalId: String,
         amountCents: Long,
         concept: String,
-        paymentStatus: ReceiptPaymentStatus
+        paymentStatus: ReceiptPaymentStatus,
+        registerDeposit: Boolean = paymentStatus == ReceiptPaymentStatus.PAID
     ): Result<ReciboEntity> {
         return try {
             require(amountCents > 0) { "El monto debe ser mayor que 0." }
@@ -217,9 +225,14 @@ class AppRepository(
             require(amountCents <= rental.montoTotalCents) {
                 "El monto no puede superar el total del alquiler."
             }
-            val registerDeposit = paymentStatus == ReceiptPaymentStatus.PAID
-            require(!registerDeposit || amountCents <= balance) {
-                "El abono no puede superar el saldo pendiente."
+            if (registerDeposit) {
+                require(amountCents <= balance) {
+                    "El abono no puede superar el saldo pendiente."
+                }
+            } else if (paymentStatus == ReceiptPaymentStatus.PAID) {
+                require(amountCents <= rental.abonoCents || amountCents <= rental.montoTotalCents) {
+                    "El monto a comprobar supera el total registrado del alquiler."
+                }
             }
             val client = clients.findById(rental.clienteId)
             val rentalItems = rentals.itemsFor(rentalId)
@@ -284,7 +297,7 @@ class AppRepository(
             )
             db.withTransaction {
                 receipts.insert(entity)
-                if (paymentStatus == ReceiptPaymentStatus.PAID) {
+                if (registerDeposit) {
                     rentals.update(
                         rental.copy(
                             abonoCents = (rental.abonoCents + amountCents).coerceAtMost(rental.montoTotalCents),
@@ -298,6 +311,10 @@ class AppRepository(
         } catch (error: Throwable) {
             Result.failure(error)
         }
+    }
+
+    suspend fun fixHistoricalPaidReceipts() {
+        receipts.fixHistoricalPaidReceipts()
     }
 
     suspend fun saveConfig(config: ConfigSnapshot) {

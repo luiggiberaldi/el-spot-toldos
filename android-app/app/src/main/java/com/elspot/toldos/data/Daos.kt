@@ -117,6 +117,26 @@ interface ReciboDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ReciboEntity)
 
+    @androidx.room.Update
+    suspend fun update(entity: ReciboEntity)
+
+    @Query(
+        """
+        UPDATE recibos 
+        SET estadoPago = 'PAID' 
+        WHERE estadoPago != 'PAID' 
+          AND (
+            LOWER(concepto) LIKE '%ya recibido%' 
+            OR LOWER(concepto) LIKE '%abono recibido%' 
+            OR LOWER(concepto) LIKE '%saldado%'
+            OR LOWER(concepto) LIKE '%cancelación%'
+            OR LOWER(concepto) LIKE '%cancelacion%'
+            OR LOWER(concepto) LIKE '%comprobante de pago%'
+          )
+        """
+    )
+    suspend fun fixHistoricalPaidReceipts()
+
     @Query("DELETE FROM recibos")
     suspend fun deleteAll()
 }

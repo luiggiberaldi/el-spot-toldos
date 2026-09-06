@@ -54,6 +54,38 @@ enum class ReceiptPaymentStatus(val label: String) {
             "PAID", "PAGADO" -> PAID
             else -> DUE
         }
+
+        /**
+         * Resuelve el estado real de un recibo.
+         * Si dice "Por pagar" debe ser estrictamente porque el dinero realmente no ha sido cobrado.
+         * Si el concepto indica abono ya recibido o cancelación saldada, o el alquiler ya estaba
+         * totalmente saldado, el estado efectivo es PAGADO.
+         */
+        fun resolve(
+            status: String?,
+            concept: String? = null,
+            rentalTotalCents: Long = 0L,
+            rentalDepositCents: Long = 0L
+        ): ReceiptPaymentStatus {
+            val direct = from(status)
+            if (direct == PAID) return PAID
+            val c = concept?.lowercase(Locale.ROOT) ?: ""
+            if (c.contains("ya recibido") ||
+                c.contains("abono recibido") ||
+                c.contains("alquiler saldado") ||
+                c.contains("cancelación") ||
+                c.contains("cancelacion") ||
+                c.contains("comprobante de pago")
+            ) {
+                return PAID
+            }
+            if (rentalTotalCents > 0L && rentalDepositCents >= rentalTotalCents &&
+                !c.contains("por pagar") && !c.contains("cuenta de cobro") && !c.contains("pendiente")
+            ) {
+                return PAID
+            }
+            return DUE
+        }
     }
 }
 
@@ -155,6 +187,17 @@ data class ReceiptSnapshot(
     val rentalDepositCents: Long,
     val items: List<ReceiptItemSnapshot>
 ) {
+    val isActuallyPaid: Boolean
+        get() = ReceiptPaymentStatus.resolve(
+            status = paymentStatus.name,
+            concept = concept,
+            rentalTotalCents = rentalTotalCents,
+            rentalDepositCents = rentalDepositCents
+        ) == ReceiptPaymentStatus.PAID
+
+    val effectivePaymentStatus: ReceiptPaymentStatus
+        get() = if (isActuallyPaid) ReceiptPaymentStatus.PAID else ReceiptPaymentStatus.DUE
+
     fun toJson(): String {
         val root = JSONObject()
             .put("id", id)
@@ -219,20 +262,28 @@ data class ReceiptSnapshot(
                     )
                 }
             }
-            ReceiptSnapshot(
-                id = root.optString("id"),
-                folio = root.optString("folio"),
-                rentalFolio = root.optString("rentalFolio"),
-                rentalId = root.optString("rentalId"),
-                emittedAt = parseStoredTime(root.optString("emittedAt").ifBlank { root.optString("emitidoEn") }),
-                concept = root.optString("concept"),
-                amountCents = root.optString("amountCents").toLongOrNull()
-                    ?: root.optString("montoCents").toLongOrNull()
-                    ?: 0L,
-                paymentStatus = ReceiptPaymentStatus.from(
-                    root.optString("paymentStatus").ifBlank { root.optString("estadoPago") }
-                ),
-                businessName = root.optString("businessName", "EL SPOT"),
+                val conceptText = root.optString("concept")
+                val totalCents = root.optLong("rentalTotalCents")
+                val depositCents = root.optLong("rentalDepositCents")
+                val rawPaymentStatus = root.optString("paymentStatus").ifBlank { root.optString("estadoPago") }
+                val resolvedPaymentStatus = ReceiptPaymentStatus.resolve(
+                    status = rawPaymentStatus,
+                    concept = conceptText,
+                    rentalTotalCents = totalCents,
+                    rentalDepositCents = depositCents
+                )
+                ReceiptSnapshot(
+                    id = root.optString("id"),
+                    folio = root.optString("folio"),
+                    rentalFolio = root.optString("rentalFolio"),
+                    rentalId = root.optString("rentalId"),
+                    emittedAt = parseStoredTime(root.optString("emittedAt").ifBlank { root.optString("emitidoEn") }),
+                    concept = conceptText,
+                    amountCents = root.optString("amountCents").toLongOrNull()
+                        ?: root.optString("montoCents").toLongOrNull()
+                        ?: 0L,
+                    paymentStatus = resolvedPaymentStatus,
+                    businessName = root.optString("businessName", "EL SPOT"),
                 businessRif = root.optString("businessRif"),
                 businessPhone = root.optString("businessPhone"),
                 businessAddress = root.optString("businessAddress"),
@@ -287,17 +338,25 @@ data class ReceiptSnapshot(
                     }
                 }
                 val folio = receipt.optString("folio").ifBlank { data.optString("folio") }
+                val legacyConcept = receipt.optString("concepto", data.optString("concepto", "Pago del alquiler"))
+                val legacyTotalCents = (rental.optDouble("montoTotal", 0.0) * 100.0).roundToLong()
+                val legacyDepositCents = (rental.optDouble("abono", 0.0) * 100.0).roundToLong()
+                val legacyRawStatus = receipt.optString("estado").ifBlank { data.optString("estado") }
+                val legacyResolvedStatus = ReceiptPaymentStatus.resolve(
+                    status = legacyRawStatus,
+                    concept = legacyConcept,
+                    rentalTotalCents = legacyTotalCents,
+                    rentalDepositCents = legacyDepositCents
+                )
                 ReceiptSnapshot(
                     id = receipt.optString("id").ifBlank { folio },
                     folio = folio,
                     rentalFolio = rental.optString("folio"),
                     rentalId = receipt.optString("alquilerId"),
                     emittedAt = emittedAt,
-                    concept = receipt.optString("concepto", data.optString("concepto", "Pago del alquiler")),
+                    concept = legacyConcept,
                     amountCents = (receipt.optDouble("monto", data.optDouble("monto", 0.0)) * 100.0).roundToLong(),
-                    paymentStatus = ReceiptPaymentStatus.from(
-                        receipt.optString("estado").ifBlank { data.optString("estado") }
-                    ),
+                    paymentStatus = legacyResolvedStatus,
                     businessName = business.optString("nombre", "EL SPOT"),
                     businessRif = business.optString("rif"),
                     businessPhone = business.optString("telefono"),

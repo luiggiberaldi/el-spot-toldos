@@ -1,8 +1,8 @@
 {
-  "versionCode": 14,
-  "versionName": "1.2.1",
-  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.1/el-spot-toldos-1.2.1.apk",
-  "sha256": "6031e5851216e44862a9765fbcf9efcf303ac12d32e25cfc0c3e71c02bdf487e",
-  "notes": "Rediseño profesional del recibo PDF: fechas explícitas de entrega y devolución, remoción de tasa de cambio y redundancias, e indicación limpia y contable del estado de pago.",
+  "versionCode": 15,
+  "versionName": "1.3.0",
+  "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.3.0/el-spot-toldos-1.3.0.apk",
+  "sha256": "PENDING_CI_BUILD",
+  "notes": "Rediseño táctico del modal de toldos con chips de tamaño, asistente de precios al 50%, vista previa en Bs. y blindaje de inventario activo; corrección determinista del estado de pago en recibos y Room v8.",
   "mandatory": false
 }
