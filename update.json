@@ -2,7 +2,7 @@
   "versionCode": 14,
   "versionName": "1.2.1",
   "apkUrl": "https://github.com/luiggiberaldi/el-spot-toldos/releases/download/v1.2.1/el-spot-toldos-1.2.1.apk",
-  "sha256": "",
+  "sha256": "6031e5851216e44862a9765fbcf9efcf303ac12d32e25cfc0c3e71c02bdf487e",
   "notes": "Rediseño profesional del recibo PDF: fechas explícitas de entrega y devolución, remoción de tasa de cambio y redundancias, e indicación limpia y contable del estado de pago.",
   "mandatory": false
 }
